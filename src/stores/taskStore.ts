@@ -36,7 +36,16 @@ const generateMockTasks = (): Task[] => {
       assignedTo: 'Sarah Jones',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      statusHistory: []
+      statusHistory: [
+        {
+          id: uuidv4(),
+          taskId: uuidv4(),
+          previousStatus: 'Pending',
+          newStatus: 'In Progress',
+          changedBy: 'Sarah Jones',
+          timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ]
     },
     {
       id: uuidv4(),
@@ -64,7 +73,7 @@ const generateMockTasks = (): Task[] => {
           taskId: '4',
           previousStatus: 'Pending',
           newStatus: 'In Progress',
-          changedBy: 'admin',
+          changedBy: 'John Doe',
           timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
         },
         {
@@ -72,7 +81,7 @@ const generateMockTasks = (): Task[] => {
           taskId: '4',
           previousStatus: 'In Progress',
           newStatus: 'Closed',
-          changedBy: 'admin',
+          changedBy: 'Lisa Andrews',
           timestamp: new Date().toISOString()
         }
       ]

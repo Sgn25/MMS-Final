@@ -129,6 +129,11 @@ const TaskDetail = () => {
     );
   }
 
+  // Sort status history in reverse chronological order
+  const sortedStatusHistory = [...task.statusHistory].sort((a, b) => {
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -301,13 +306,13 @@ const TaskDetail = () => {
                 <CardTitle className="text-base">Status History</CardTitle>
               </CardHeader>
               <CardContent>
-                {task.statusHistory.length === 0 ? (
+                {sortedStatusHistory.length === 0 ? (
                   <p className="text-gray-500 text-sm py-4 text-center">No status changes recorded yet</p>
                 ) : (
                   <div className="space-y-4">
-                    {task.statusHistory.map((change: StatusChange, index) => (
+                    {sortedStatusHistory.map((change: StatusChange, index) => (
                       <div key={change.id} className="relative">
-                        {index !== task.statusHistory.length - 1 && (
+                        {index !== sortedStatusHistory.length - 1 && (
                           <div className="absolute left-3 top-5 w-0.5 h-full -ml-px bg-gray-200 z-0"></div>
                         )}
                         <div className="flex items-start gap-3 relative z-10">
@@ -318,8 +323,9 @@ const TaskDetail = () => {
                             <div className="text-sm">
                               Status changed from <span className="font-medium">{change.previousStatus}</span> to <span className="font-medium">{change.newStatus}</span>
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {formatDate(change.timestamp)}
+                            <div className="text-xs text-gray-500 mt-1 flex items-center justify-between">
+                              <span>{formatDate(change.timestamp)}</span>
+                              <span className="font-medium">by {change.changedBy}</span>
                             </div>
                           </div>
                         </div>
