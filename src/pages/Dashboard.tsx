@@ -17,6 +17,11 @@ const Dashboard = () => {
   const inProgressTasks = getTasksByStatus('In Progress');
   const closedTasks = getTasksByStatus('Closed');
 
+  // Extract user display information safely
+  const userEmail = user?.email || '';
+  // Handle Supabase's data structure - need to check if user_metadata exists and contains name
+  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || '';
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -28,7 +33,7 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-right">
-              <p className="text-sm font-medium">{user?.name || user?.email}</p>
+              <p className="text-sm font-medium">{userName || userEmail}</p>
               <p className="text-xs text-gray-500">Maintenance Manager</p>
             </div>
             <Button 
