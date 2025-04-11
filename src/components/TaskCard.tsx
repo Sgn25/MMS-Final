@@ -50,15 +50,38 @@ const TaskCard = ({ task }: TaskCardProps) => {
     }
   };
 
+  // Function to determine status background glow
+  const getStatusGlow = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'before:bg-milma-pending/10';
+      case 'In Progress':
+        return 'before:bg-milma-progress/10';
+      case 'Closed':
+        return 'before:bg-milma-closed/10';
+      default:
+        return 'before:bg-gray-300/10';
+    }
+  };
+
   return (
-    <Card className={`border-l-4 ${getStatusColor(task.status)} hover:shadow-md transition-shadow`}>
-      <CardContent className="p-4">
+    <Card 
+      className={`
+        border-l-4 ${getStatusColor(task.status)} 
+        hover:shadow-md transition-all duration-200 
+        transform hover:-translate-y-1 
+        relative overflow-hidden 
+        before:content-[''] before:absolute before:inset-0 
+        before:opacity-30 ${getStatusGlow(task.status)} before:rounded-lg before:z-0
+      `}
+    >
+      <CardContent className="p-4 relative z-10">
         <div className="flex flex-col h-full">
           <div className="flex justify-between items-start mb-2">
             <Link to={`/task/${task.id}`} className="hover:underline flex-grow mr-2">
               <h3 className="font-medium text-gray-900 truncate">{task.title}</h3>
             </Link>
-            <Badge className={`shrink-0 ${getPriorityColor(task.priority)}`}>
+            <Badge className={`shrink-0 whitespace-nowrap ${getPriorityColor(task.priority)}`}>
               {task.priority}
             </Badge>
           </div>

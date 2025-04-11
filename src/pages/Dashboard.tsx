@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import useTaskStore from '@/stores/taskStore';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import TaskCard from '@/components/TaskCard';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import { PlusCircle, LogOut, Clock, ArrowUpCircle, CheckCircle2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { tasks, getTasksByStatus } = useTaskStore();
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   const pendingTasks = getTasksByStatus('Pending');
   const inProgressTasks = getTasksByStatus('In Progress');
@@ -19,8 +21,20 @@ const Dashboard = () => {
 
   // Extract user display information safely
   const userEmail = user?.email || '';
-  // Handle Supabase's data structure - need to check if user_metadata exists and contains name
-  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || '';
+  
+  // Map specific emails to names
+  const emailToNameMap = useMemo(() => ({
+    'wyd.eng@malabarmilma.coop': 'Sarath',
+    'wyd.de.mrcmpu@gmail.com': 'Ameen',
+    'wyd.tsengg@gmail.com': 'Dineesh',
+    'wyd.eng.mrcmpu@gmail.com': 'Akhil'
+  }), []);
+  
+  // Get user name from email mapping or metadata or default to email username
+  const userName = emailToNameMap[userEmail] || 
+                  user?.user_metadata?.name || 
+                  userEmail.split('@')[0] || 
+                  '';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -43,7 +57,7 @@ const Dashboard = () => {
               className="flex items-center gap-1"
             >
               <LogOut className="h-4 w-4" />
-              Sign Out
+              {!isMobile && "Sign Out"}
             </Button>
           </div>
         </div>
@@ -51,11 +65,11 @@ const Dashboard = () => {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <h2 className="text-xl font-semibold">Task Dashboard</h2>
           <Button 
             onClick={() => setIsAddTaskOpen(true)}
-            className="bg-milma-blue hover:bg-milma-blue/90 text-white flex items-center gap-1"
+            className="bg-milma-blue hover:bg-milma-blue/90 text-white flex items-center gap-1 w-full sm:w-auto"
           >
             <PlusCircle className="h-4 w-4" />
             Add New Task
@@ -63,7 +77,7 @@ const Dashboard = () => {
         </div>
 
         {/* Status Summary Boxes */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
           {/* Pending Box */}
           <Card className="bg-milma-pending/20 border-milma-pending border">
             <CardContent className="p-4 flex items-center justify-between">
