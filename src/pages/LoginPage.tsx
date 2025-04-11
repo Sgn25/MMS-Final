@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, user } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
   // If user is already logged in, redirect to dashboard
@@ -20,7 +22,7 @@ const LoginPage = () => {
     return null;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
@@ -29,6 +31,20 @@ const LoginPage = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      await signUp(email, password, name);
+      // Note: We don't navigate here because the user needs to verify their email first
+    } catch (error) {
+      console.error('Signup error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -44,51 +60,109 @@ const LoginPage = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Sign In</CardTitle>
+            <CardTitle>Welcome</CardTitle>
             <CardDescription>
-              Enter your credentials to access your account
+              Sign in to your account or create a new one
             </CardDescription>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                type="submit" 
-                className="w-full bg-milma-blue hover:bg-milma-blue/90"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing in...' : 'Sign In'}
-              </Button>
-            </CardFooter>
-          </form>
+          
+          <Tabs defaultValue="signin">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="signin">
+              <form onSubmit={handleSignIn}>
+                <CardContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-milma-blue hover:bg-milma-blue/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Signing in...' : 'Sign In'}
+                  </Button>
+                </CardFooter>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="signup">
+              <form onSubmit={handleSignUp}>
+                <CardContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="John Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-milma-blue hover:bg-milma-blue/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Signing up...' : 'Sign Up'}
+                  </Button>
+                </CardFooter>
+              </form>
+            </TabsContent>
+          </Tabs>
         </Card>
         
         <div className="text-center mt-6 text-sm text-gray-500">
-          <p>Demo credentials: any email with password of at least 6 characters</p>
-          <p className="mt-2">Note: This is a placeholder. Connect Supabase for real authentication.</p>
+          <p>For testing, we recommend disabling email verification in the Supabase dashboard.</p>
         </div>
       </div>
     </div>

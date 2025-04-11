@@ -18,10 +18,11 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Status } from '@/types/task';
-import useTaskStore from '@/stores/taskStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowUpCircle, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowUpCircle, Clock, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface StatusUpdateMenuProps {
   taskId: string;
@@ -29,11 +30,12 @@ interface StatusUpdateMenuProps {
 }
 
 const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
-  const { updateTask } = useTaskStore();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Status | "">("");
   const [remarks, setRemarks] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
@@ -44,7 +46,7 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
     }
   };
 
-  const handleStatusChange = () => {
+  const handleStatusChange = async () => {
     if (!selectedStatus || selectedStatus === currentStatus) {
       toast.error("Please select a different status");
       return;
@@ -55,22 +57,62 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
       return;
     }
     
-    if (user) {
-      updateTask(
-        taskId, 
-        { 
-          status: selectedStatus as Status,
+    if (!user) {
+      toast.error("You must be logged in to update task status");
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // 1. First get the current task to ensure we have the latest status
+      const { data: taskData, error: taskError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('id', taskId)
+        .single();
+      
+      if (taskError) throw taskError;
+      
+      // 2. Update the task status
+      const { error: updateError } = await supabase
+        .from('tasks')
+        .update({ 
+          status: selectedStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', taskId);
+      
+      if (updateError) throw updateError;
+      
+      // 3. Add status change to history
+      const { error: historyError } = await supabase
+        .from('status_history')
+        .insert({
+          task_id: taskId,
+          previous_status: taskData.status,
+          new_status: selectedStatus,
+          user_id: user.id,
+          user_name: user.email || 'Unknown User',
           remarks: remarks
-        }, 
-        user.id
-      );
+        });
+      
+      if (historyError) throw historyError;
       
       toast.success(`Task status updated to ${selectedStatus}`);
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      
       setOpen(false);
       setSelectedStatus("");
       setRemarks("");
-    } else {
-      toast.error("You must be logged in to update task status");
+    } catch (error: any) {
+      console.error('Error updating status:', error);
+      toast.error(`Failed to update status: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -157,8 +199,11 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleStatusChange}>
-              Update Status
+            <Button 
+              onClick={handleStatusChange}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Updating...' : 'Update Status'}
             </Button>
           </DialogFooter>
         </DialogContent>

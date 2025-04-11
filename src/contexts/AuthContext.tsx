@@ -1,70 +1,97 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-// This is a placeholder for Supabase integration
-// You'll need to connect with Supabase to implement the actual authentication
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-}
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => void;
+  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user in localStorage (temporary solution)
-    const storedUser = localStorage.getItem('milma-user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    // Set up the auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (event === 'SIGNED_IN') {
+          toast.success('Signed in successfully');
+        } else if (event === 'SIGNED_OUT') {
+          toast.info('Signed out successfully');
+        }
+      }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // This is a mockup for the sign-in functionality
-  // Replace with Supabase auth when connected
-  const signIn = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name: string) => {
     try {
-      // Simulate authentication
-      // Will be replaced with actual Supabase auth
-      if (email && password.length >= 6) {
-        const mockUser = {
-          id: 'temp-user-id',
-          email: email,
-          name: email.split('@')[0]
-        };
-        
-        setUser(mockUser);
-        localStorage.setItem('milma-user', JSON.stringify(mockUser));
-        toast.success("Signed in successfully!");
-        return;
-      }
-      throw new Error("Invalid credentials");
-    } catch (error) {
-      toast.error("Failed to sign in. Please check your credentials.");
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          }
+        }
+      });
+      
+      if (error) throw error;
+      toast.success("Signed up successfully! Please verify your email.");
+    } catch (error: any) {
+      toast.error(`Error signing up: ${error.message}`);
       throw error;
     }
   };
 
-  const signOut = () => {
-    setUser(null);
-    localStorage.removeItem('milma-user');
-    toast.info("Signed out successfully");
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error(`Failed to sign in: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error(`Error signing out: ${error.message}`);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

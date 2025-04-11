@@ -55,10 +55,10 @@ const TaskCard = ({ task }: TaskCardProps) => {
       <CardContent className="p-4">
         <div className="flex flex-col h-full">
           <div className="flex justify-between items-start mb-2">
-            <Link to={`/task/${task.id}`} className="hover:underline">
+            <Link to={`/task/${task.id}`} className="hover:underline flex-grow mr-2">
               <h3 className="font-medium text-gray-900 truncate">{task.title}</h3>
             </Link>
-            <Badge className={`ml-2 ${getPriorityColor(task.priority)}`}>
+            <Badge className={`shrink-0 ${getPriorityColor(task.priority)}`}>
               {task.priority}
             </Badge>
           </div>
