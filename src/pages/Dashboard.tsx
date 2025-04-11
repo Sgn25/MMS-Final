@@ -1,13 +1,12 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import useTaskStore from '@/stores/taskStore';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import TaskCard from '@/components/TaskCard';
 import AddTaskDialog from '@/components/AddTaskDialog';
-import { PlusCircle, LogOut } from 'lucide-react';
+import { PlusCircle, LogOut, Clock, ArrowUpCircle, CheckCircle2 } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -58,80 +57,59 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Pending Tasks Column */}
-          <div className="space-y-4">
-            <Card className="border-t-4 border-t-milma-pending">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-medium flex justify-between">
-                  <span>Pending</span>
-                  <span className="bg-milma-pending/20 text-milma-pending px-2 py-1 text-xs rounded-full font-normal">
-                    {pendingTasks.length}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {pendingTasks.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-6">No pending tasks</p>
-                  ) : (
-                    pendingTasks.map(task => (
-                      <TaskCard key={task.id} task={task} />
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Status Summary Boxes */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Pending Box */}
+          <Card className="bg-milma-pending/20 border-milma-pending border">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Clock className="h-6 w-6 text-milma-pending" />
+                <h3 className="font-medium text-gray-800">Pending</h3>
+              </div>
+              <div className="text-2xl font-bold text-black rounded-full bg-white w-10 h-10 flex items-center justify-center">
+                {pendingTasks.length}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* In Progress Tasks Column */}
-          <div className="space-y-4">
-            <Card className="border-t-4 border-t-milma-progress">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-medium flex justify-between">
-                  <span>In Progress</span>
-                  <span className="bg-milma-progress/20 text-milma-progress px-2 py-1 text-xs rounded-full font-normal">
-                    {inProgressTasks.length}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {inProgressTasks.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-6">No tasks in progress</p>
-                  ) : (
-                    inProgressTasks.map(task => (
-                      <TaskCard key={task.id} task={task} />
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* In Progress Box */}
+          <Card className="bg-milma-progress/20 border-milma-progress border">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ArrowUpCircle className="h-6 w-6 text-milma-progress" />
+                <h3 className="font-medium text-gray-800">In Progress</h3>
+              </div>
+              <div className="text-2xl font-bold text-black rounded-full bg-white w-10 h-10 flex items-center justify-center">
+                {inProgressTasks.length}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Closed Tasks Column */}
-          <div className="space-y-4">
-            <Card className="border-t-4 border-t-milma-closed">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-medium flex justify-between">
-                  <span>Closed</span>
-                  <span className="bg-milma-closed/20 text-milma-closed px-2 py-1 text-xs rounded-full font-normal">
-                    {closedTasks.length}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {closedTasks.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-6">No closed tasks</p>
-                  ) : (
-                    closedTasks.map(task => (
-                      <TaskCard key={task.id} task={task} />
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          {/* Closed Box */}
+          <Card className="bg-milma-closed/20 border-milma-closed border">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-6 w-6 text-milma-closed" />
+                <h3 className="font-medium text-gray-800">Closed</h3>
+              </div>
+              <div className="text-2xl font-bold text-black rounded-full bg-white w-10 h-10 flex items-center justify-center">
+                {closedTasks.length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* All Tasks Grid */}
+        <div className="mt-8">
+          <h3 className="text-lg font-medium mb-4">All Tasks</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tasks.length === 0 ? (
+              <p className="text-gray-500 col-span-full text-center py-12">No tasks found</p>
+            ) : (
+              tasks.map(task => (
+                <TaskCard key={task.id} task={task} />
+              ))
+            )}
           </div>
         </div>
       </main>

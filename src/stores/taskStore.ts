@@ -7,7 +7,7 @@ interface TaskState {
   tasks: Task[];
   loading: boolean;
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'statusHistory'>) => void;
-  updateTask: (taskId: string, updatedTask: Partial<Task>, userId: string) => void;
+  updateTask: (taskId: string, updatedTask: Partial<Task> & { remarks?: string }, userId: string) => void;
   deleteTask: (taskId: string) => void;
   getTaskById: (taskId: string) => Task | undefined;
   getTasksByStatus: (status: Status) => Task[];
@@ -43,6 +43,7 @@ const generateMockTasks = (): Task[] => {
           previousStatus: 'Pending',
           newStatus: 'In Progress',
           changedBy: 'Sarah Jones',
+          remarks: 'Starting work on the firmware updates',
           timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
         }
       ]
@@ -74,6 +75,7 @@ const generateMockTasks = (): Task[] => {
           previousStatus: 'Pending',
           newStatus: 'In Progress',
           changedBy: 'John Doe',
+          remarks: 'Beginning the cleaning process',
           timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
         },
         {
@@ -82,6 +84,7 @@ const generateMockTasks = (): Task[] => {
           previousStatus: 'In Progress',
           newStatus: 'Closed',
           changedBy: 'Lisa Andrews',
+          remarks: 'All vents have been cleaned and inspected',
           timestamp: new Date().toISOString()
         }
       ]
@@ -124,6 +127,7 @@ const useTaskStore = create<TaskState>((set, get) => ({
             previousStatus: currentTask.status,
             newStatus: updatedTask.status,
             changedBy: userId,
+            remarks: updatedTask.remarks || 'No remarks provided',
             timestamp: new Date().toISOString()
           };
           

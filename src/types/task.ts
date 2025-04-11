@@ -8,6 +8,7 @@ export interface StatusChange {
   previousStatus: Status;
   newStatus: Status;
   changedBy: string;
+  remarks: string;
   timestamp: string;
 }
 
@@ -21,4 +22,5 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   statusHistory: StatusChange[];
+  remarks?: string;
 }

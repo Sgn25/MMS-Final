@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Task } from '@/types/task';
-import { CalendarClock, User, MoreHorizontal } from 'lucide-react';
+import { CalendarClock, User } from 'lucide-react';
 import StatusUpdateMenu from './StatusUpdateMenu';
 
 interface TaskCardProps {
@@ -36,42 +36,52 @@ const TaskCard = ({ task }: TaskCardProps) => {
     }).format(date);
   };
 
+  // Function to determine status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'border-l-milma-pending';
+      case 'In Progress':
+        return 'border-l-milma-progress';
+      case 'Closed':
+        return 'border-l-milma-closed';
+      default:
+        return 'border-l-gray-300';
+    }
+  };
+
   return (
-    <div className="relative">
-      <Link to={`/task/${task.id}`}>
-        <Card className="hover:shadow-md transition-shadow cursor-pointer border-gray-200">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-medium text-gray-900 truncate flex-1">{task.title}</h3>
-              <Badge className={`ml-2 ${getPriorityColor(task.priority)}`}>
-                {task.priority}
-              </Badge>
+    <Card className={`border-l-4 ${getStatusColor(task.status)} hover:shadow-md transition-shadow`}>
+      <CardContent className="p-4">
+        <div className="flex flex-col h-full">
+          <div className="flex justify-between items-start mb-2">
+            <Link to={`/task/${task.id}`} className="hover:underline">
+              <h3 className="font-medium text-gray-900 truncate">{task.title}</h3>
+            </Link>
+            <Badge className={`ml-2 ${getPriorityColor(task.priority)}`}>
+              {task.priority}
+            </Badge>
+          </div>
+          
+          <p className="text-sm text-gray-500 line-clamp-2 mb-3">{task.description}</p>
+          
+          <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+            <div className="flex items-center gap-1">
+              <User className="h-3 w-3" />
+              <span>{task.assignedTo}</span>
             </div>
-            
-            <p className="text-sm text-gray-500 line-clamp-2 mb-3">{task.description}</p>
-            
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <div className="flex items-center gap-1">
-                <User className="h-3 w-3" />
-                <span>{task.assignedTo}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <CalendarClock className="h-3 w-3" />
-                <span>{formatDate(task.updatedAt)}</span>
-              </div>
+            <div className="flex items-center gap-1">
+              <CalendarClock className="h-3 w-3" />
+              <span>{formatDate(task.updatedAt)}</span>
             </div>
-          </CardContent>
-        </Card>
-      </Link>
-      
-      {/* Status Update Button - positioned absolutely to avoid interfering with the Link */}
-      <div 
-        className="absolute top-2 right-2 z-10"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <StatusUpdateMenu taskId={task.id} currentStatus={task.status} />
-      </div>
-    </div>
+          </div>
+          
+          <div className="mt-auto pt-2 border-t">
+            <StatusUpdateMenu taskId={task.id} currentStatus={task.status} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
