@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { 
   Select,
@@ -23,6 +24,7 @@ import { ArrowUpCircle, Clock, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import useTaskStore from '@/stores/taskStore';
 
 interface StatusUpdateMenuProps {
   taskId: string;
@@ -32,6 +34,7 @@ interface StatusUpdateMenuProps {
 const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { updateTask } = useTaskStore();
   const [open, setOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Status | "">("");
   const [remarks, setRemarks] = useState("");
@@ -100,6 +103,16 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
       
       if (historyError) throw historyError;
       
+      // 4. Also update local store
+      updateTask(
+        taskId,
+        {
+          status: selectedStatus as any,
+          remarks: remarks
+        },
+        user.email || 'Unknown User'
+      );
+      
       toast.success(`Task status updated to ${selectedStatus}`);
       
       // Invalidate queries to refresh data
@@ -146,6 +159,7 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Update Task Status</DialogTitle>
+            <DialogDescription>Change the status and provide remarks for the update</DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">

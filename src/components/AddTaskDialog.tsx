@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import useTaskStore from '@/stores/taskStore';
 
 interface AddTaskDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface AddTaskDialogProps {
 const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { addTask } = useTaskStore();
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -43,8 +45,9 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
     setIsSubmitting(true);
     
     try {
-      // Add task to Supabase
-      const { error } = await supabase
+      // Use both Supabase and local state management
+      // First add to Supabase
+      const { data, error } = await supabase
         .from('tasks')
         .insert({
           title,
@@ -53,9 +56,20 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
           priority,
           assigned_to: assignedTo || 'Unassigned',
           user_id: user.id
-        });
+        })
+        .select()
+        .single();
       
       if (error) throw error;
+      
+      // Also update local state using zustand store
+      addTask({
+        title,
+        description,
+        status: status as any,
+        priority: priority as any,
+        assignedTo: assignedTo || 'Unassigned'
+      });
       
       toast.success('Task added successfully');
       

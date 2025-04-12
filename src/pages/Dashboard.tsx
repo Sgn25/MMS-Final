@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import useTaskStore from '@/stores/taskStore';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,9 @@ import AddTaskDialog from '@/components/AddTaskDialog';
 import { PlusCircle, LogOut, Clock, ArrowUpCircle, CheckCircle2, X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Status } from '@/types/task';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -16,6 +19,30 @@ const Dashboard = () => {
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Status | null>(null);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  
+  // Fetch tasks from Supabase on initial load
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .order('updated_at', { ascending: false });
+          
+        if (error) throw error;
+        // Note: we're using the local store to manage tasks for now
+        // If you want to use the fetched data directly, you'd need to update the state here
+      } catch (error: any) {
+        console.error('Error fetching tasks:', error);
+        toast.error('Failed to load tasks');
+      }
+    };
+    
+    fetchTasks();
+  }, [user]);
   
   const pendingTasks = getTasksByStatus('Pending');
   const inProgressTasks = getTasksByStatus('In Progress');
@@ -50,6 +77,17 @@ const Dashboard = () => {
     }
   };
 
+  // Handle sign out with improved error handling
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out. Please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -67,7 +105,7 @@ const Dashboard = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={signOut}
+              onClick={handleSignOut}
               className="flex items-center gap-1"
             >
               <LogOut className="h-4 w-4" />
