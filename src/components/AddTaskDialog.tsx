@@ -62,6 +62,20 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
       
       if (error) throw error;
       
+      // Add the initial status history entry for task creation
+      const { error: historyError } = await supabase
+        .from('status_history')
+        .insert({
+          task_id: data.id,
+          previous_status: 'Created',
+          new_status: 'Pending',
+          user_id: user.id,
+          user_name: user.email || 'Unknown User',
+          remarks: 'Task created'
+        });
+      
+      if (historyError) throw historyError;
+      
       // Also update local state using zustand store
       addTask({
         title,

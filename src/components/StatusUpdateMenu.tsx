@@ -94,7 +94,7 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
         .from('status_history')
         .insert({
           task_id: taskId,
-          previous_status: taskData.status,
+          previous_status: currentStatus,
           new_status: selectedStatus,
           user_id: user.id,
           user_name: user.email || 'Unknown User',
