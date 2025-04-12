@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -22,8 +21,6 @@ import { Status } from '@/types/task';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowUpCircle, Clock, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
 import useTaskStore from '@/stores/taskStore';
 
 interface StatusUpdateMenuProps {
@@ -33,7 +30,6 @@ interface StatusUpdateMenuProps {
 
 const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { updateTask } = useTaskStore();
   const [open, setOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Status | "">("");
@@ -68,58 +64,12 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
     setIsSubmitting(true);
     
     try {
-      // 1. First get the current task to ensure we have the latest status
-      const { data: taskData, error: taskError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('id', taskId)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid errors
-      
-      if (taskError) throw taskError;
-      if (!taskData) throw new Error("Task not found");
-      
-      // 2. Update the task status
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .update({ 
-          status: selectedStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', taskId);
-      
-      if (updateError) throw updateError;
-      
-      // 3. Add status change to history - use email as user identifier
-      const userEmail = user.email || 'Unknown User';
-      const { error: historyError } = await supabase
-        .from('status_history')
-        .insert({
-          task_id: taskId,
-          previous_status: currentStatus,
-          new_status: selectedStatus,
-          user_id: user.id,
-          user_name: userEmail,
-          remarks: remarks
-        });
-      
-      if (historyError) throw historyError;
-      
-      // 4. Also update local store
-      updateTask(
-        taskId,
-        {
-          status: selectedStatus as any,
-          remarks: remarks
-        },
-        userEmail
-      );
+      await updateTask(taskId, { 
+        status: selectedStatus,
+        remarks: remarks
+      }, user.email || 'Unknown User');
       
       toast.success(`Task status updated to ${selectedStatus}`);
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      
       setOpen(false);
       setSelectedStatus("");
       setRemarks("");

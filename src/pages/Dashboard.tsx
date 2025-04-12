@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import useTaskStore from '@/stores/taskStore';
@@ -9,44 +8,32 @@ import AddTaskDialog from '@/components/AddTaskDialog';
 import { PlusCircle, LogOut, Clock, ArrowUpCircle, CheckCircle2, X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Status } from '@/types/task';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
-  const { tasks, getTasksByStatus } = useTaskStore();
-  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<Status | null>(null);
+  const { tasks, loading, error, fetchTasks } = useTaskStore();
+  const [selectedStatus, setSelectedStatus] = useState<Status | 'all'>('all');
+  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   
-  // Fetch tasks from Supabase on initial load
+  // Fetch tasks on initial load
   useEffect(() => {
-    const fetchTasks = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('*')
-          .order('updated_at', { ascending: false });
-          
-        if (error) throw error;
-        // Note: we're using the local store to manage tasks for now
-        // If you want to use the fetched data directly, you'd need to update the state here
-      } catch (error: any) {
-        console.error('Error fetching tasks:', error);
-        toast.error('Failed to load tasks');
-      }
-    };
-    
     fetchTasks();
-  }, [user]);
-  
-  const pendingTasks = getTasksByStatus('Pending');
-  const inProgressTasks = getTasksByStatus('In Progress');
-  const closedTasks = getTasksByStatus('Closed');
+  }, [fetchTasks]);
+
+  // Filter tasks based on selected status
+  const filteredTasks = useMemo(() => {
+    if (selectedStatus === 'all') return tasks;
+    return tasks.filter(task => task.status === selectedStatus);
+  }, [tasks, selectedStatus]);
+
+  const pendingTasks = useTaskStore.getState().getTasksByStatus('Pending');
+  const inProgressTasks = useTaskStore.getState().getTasksByStatus('In Progress');
+  const closedTasks = useTaskStore.getState().getTasksByStatus('Closed');
 
   // Extract user display information safely
   const userEmail = user?.email || '';
@@ -65,15 +52,12 @@ const Dashboard = () => {
                   userEmail.split('@')[0] || 
                   '';
 
-  // Filter tasks by status if a filter is active
-  const filteredTasks = statusFilter ? getTasksByStatus(statusFilter) : tasks;
-
   // Handle clicking on a status box to filter tasks
   const handleStatusFilterClick = (status: Status) => {
-    if (statusFilter === status) {
-      setStatusFilter(null); // Clicking the same filter again clears it
+    if (selectedStatus === status) {
+      setSelectedStatus('all'); // Clicking the same filter again clears it
     } else {
-      setStatusFilter(status);
+      setSelectedStatus(status);
     }
   };
 
@@ -120,7 +104,7 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <h2 className="text-xl font-semibold">Task Dashboard</h2>
           <Button 
-            onClick={() => setIsAddTaskOpen(true)}
+            onClick={() => setIsAddTaskDialogOpen(true)}
             className="bg-milma-blue hover:bg-milma-blue/90 text-white flex items-center gap-1 w-full sm:w-auto"
           >
             <PlusCircle className="h-4 w-4" />
@@ -132,7 +116,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
           {/* Pending Box */}
           <Card 
-            className={`bg-red-100 border-red-500 border cursor-pointer ${statusFilter === 'Pending' ? 'ring-2 ring-red-500' : ''}`}
+            className={`bg-red-100 border-red-500 border cursor-pointer ${selectedStatus === 'Pending' ? 'ring-2 ring-red-500' : ''}`}
             onClick={() => handleStatusFilterClick('Pending')}
           >
             <CardContent className="p-4 flex items-center justify-between">
@@ -148,7 +132,7 @@ const Dashboard = () => {
 
           {/* In Progress Box */}
           <Card 
-            className={`bg-amber-100 border-amber-500 border cursor-pointer ${statusFilter === 'In Progress' ? 'ring-2 ring-amber-500' : ''}`}
+            className={`bg-amber-100 border-amber-500 border cursor-pointer ${selectedStatus === 'In Progress' ? 'ring-2 ring-amber-500' : ''}`}
             onClick={() => handleStatusFilterClick('In Progress')}
           >
             <CardContent className="p-4 flex items-center justify-between">
@@ -164,7 +148,7 @@ const Dashboard = () => {
 
           {/* Closed Box */}
           <Card 
-            className={`bg-green-100 border-green-500 border cursor-pointer ${statusFilter === 'Closed' ? 'ring-2 ring-green-500' : ''}`}
+            className={`bg-green-100 border-green-500 border cursor-pointer ${selectedStatus === 'Closed' ? 'ring-2 ring-green-500' : ''}`}
             onClick={() => handleStatusFilterClick('Closed')}
           >
             <CardContent className="p-4 flex items-center justify-between">
@@ -180,15 +164,15 @@ const Dashboard = () => {
         </div>
 
         {/* Active filter indicator */}
-        {statusFilter && (
+        {selectedStatus !== 'all' && (
           <div className="mb-4 flex items-center">
             <div className="bg-gray-100 py-1 px-3 rounded-full flex items-center gap-2">
-              <span className="text-sm">Filtering by: <span className="font-medium">{statusFilter}</span></span>
+              <span className="text-sm">Filtering by: <span className="font-medium">{selectedStatus}</span></span>
               <Button 
                 variant="ghost" 
                 size="icon"
                 className="h-6 w-6"
-                onClick={() => setStatusFilter(null)}
+                onClick={() => setSelectedStatus('all')}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -199,7 +183,7 @@ const Dashboard = () => {
         {/* All Tasks Grid */}
         <div className="mt-8">
           <h3 className="text-lg font-medium mb-4">
-            {statusFilter ? `${statusFilter} Tasks` : 'All Tasks'}
+            {selectedStatus !== 'all' ? `${selectedStatus} Tasks` : 'All Tasks'}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTasks.length === 0 ? (
@@ -214,7 +198,7 @@ const Dashboard = () => {
       </main>
 
       {/* Add Task Dialog */}
-      <AddTaskDialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen} />
+      <AddTaskDialog open={isAddTaskDialogOpen} onOpenChange={setIsAddTaskDialogOpen} />
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,53 +30,65 @@ const TaskDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   
   useEffect(() => {
-    if (id) {
-      const foundTask = getTaskById(id);
-      if (foundTask) {
-        setTask(foundTask);
-        setTitle(foundTask.title);
-        setDescription(foundTask.description);
-        setStatus(foundTask.status);
-        setPriority(foundTask.priority);
-        setAssignedTo(foundTask.assignedTo);
-      } else {
-        toast.error('Task not found');
-        navigate('/dashboard');
+    const fetchTask = async () => {
+      if (id) {
+        const foundTask = await getTaskById(id);
+        if (foundTask) {
+          setTask(foundTask);
+          setTitle(foundTask.title);
+          setDescription(foundTask.description);
+          setStatus(foundTask.status);
+          setPriority(foundTask.priority);
+          setAssignedTo(foundTask.assignedTo);
+        } else {
+          toast.error('Task not found');
+          navigate('/dashboard');
+        }
       }
-    }
+    };
+
+    fetchTask();
   }, [id, getTaskById, navigate]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (id && user) {
-      updateTask(
-        id,
-        {
-          title,
-          description,
-          status: status as any,
-          priority: priority as any,
-          assignedTo
-        },
-        user.id
-      );
-      
-      toast.success('Task updated successfully');
-      setIsEditing(false);
-      
-      // Refresh task data
-      const updatedTask = getTaskById(id);
-      if (updatedTask) {
-        setTask(updatedTask);
+      try {
+        await updateTask(
+          id,
+          {
+            title,
+            description,
+            status: status as any,
+            priority: priority as any,
+            assignedTo
+          },
+          user.id
+        );
+        
+        toast.success('Task updated successfully');
+        setIsEditing(false);
+        
+        // Refresh task data
+        const updatedTask = await getTaskById(id);
+        if (updatedTask) {
+          setTask(updatedTask);
+        }
+      } catch (error: any) {
+        toast.error(`Failed to update task: ${error.message}`);
       }
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (id) {
       if (window.confirm('Are you sure you want to delete this task?')) {
-        deleteTask(id);
-        toast.success('Task deleted successfully');
-        navigate('/dashboard');
+        try {
+          await deleteTask(id);
+          toast.success('Task deleted successfully');
+          navigate('/dashboard');
+        } catch (error: any) {
+          toast.error(`Failed to delete task: ${error.message}`);
+        }
       }
     }
   };
