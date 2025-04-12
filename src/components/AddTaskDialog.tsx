@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import useTaskStore from '@/stores/taskStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AddTaskDialogProps {
   open: boolean;
@@ -17,15 +18,16 @@ interface AddTaskDialogProps {
 
 const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
   const { user } = useAuth();
-  const { addTask } = useTaskStore();
+  const queryClient = useQueryClient();
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('Pending');
   const [priority, setPriority] = useState('Medium');
   const [assignedTo, setAssignedTo] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!title.trim()) {
@@ -33,17 +35,41 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
       return;
     }
     
-    addTask({
-      title,
-      description,
-      status: status as any,
-      priority: priority as any,
-      assignedTo: assignedTo || 'Unassigned'
-    });
+    if (!user) {
+      toast.error('You must be logged in to add a task');
+      return;
+    }
     
-    toast.success('Task added successfully');
-    resetForm();
-    onOpenChange(false);
+    setIsSubmitting(true);
+    
+    try {
+      // Add task to Supabase
+      const { error } = await supabase
+        .from('tasks')
+        .insert({
+          title,
+          description,
+          status,
+          priority,
+          assigned_to: assignedTo || 'Unassigned',
+          user_id: user.id
+        });
+      
+      if (error) throw error;
+      
+      toast.success('Task added successfully');
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      
+      resetForm();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('Error adding task:', error);
+      toast.error(`Failed to add task: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const resetForm = () => {
@@ -135,8 +161,12 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
             >
               Cancel
             </Button>
-            <Button type="submit" className="bg-milma-blue hover:bg-milma-blue/90">
-              Add Task
+            <Button 
+              type="submit" 
+              className="bg-milma-blue hover:bg-milma-blue/90"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Adding...' : 'Add Task'}
             </Button>
           </DialogFooter>
         </form>

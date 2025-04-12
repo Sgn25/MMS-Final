@@ -11,8 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { ChevronLeft, Save, Trash2, Calendar, UserCircle, Clock } from 'lucide-react';
+import { ChevronLeft, Save, Trash2, Calendar, UserCircle, Clock, Mail } from 'lucide-react';
 import { StatusChange, Task } from '@/types/task';
 
 const TaskDetail = () => {
@@ -99,11 +100,11 @@ const TaskDetail = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending':
-        return 'bg-milma-pending/20 text-milma-pending';
+        return 'bg-red-100 text-red-700';
       case 'In Progress':
-        return 'bg-milma-progress/20 text-milma-progress';
+        return 'bg-amber-100 text-amber-700';
       case 'Closed':
-        return 'bg-milma-closed/20 text-milma-closed';
+        return 'bg-green-100 text-green-700';
       default:
         return 'bg-gray-200 text-gray-800';
     }
@@ -309,29 +310,37 @@ const TaskDetail = () => {
                 {sortedStatusHistory.length === 0 ? (
                   <p className="text-gray-500 text-sm py-4 text-center">No status changes recorded yet</p>
                 ) : (
-                  <div className="space-y-4">
-                    {sortedStatusHistory.map((change: StatusChange, index) => (
-                      <div key={change.id} className="relative">
-                        {index !== sortedStatusHistory.length - 1 && (
-                          <div className="absolute left-3 top-5 w-0.5 h-full -ml-px bg-gray-200 z-0"></div>
-                        )}
-                        <div className="flex items-start gap-3 relative z-10">
-                          <div className="rounded-full w-6 h-6 bg-milma-blue/20 flex items-center justify-center">
-                            <Clock className="h-3 w-3 text-milma-blue" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-sm">
-                              Status changed from <span className="font-medium">{change.previousStatus}</span> to <span className="font-medium">{change.newStatus}</span>
+                  <ScrollArea className="h-[300px] pr-4">
+                    <div className="space-y-4">
+                      {sortedStatusHistory.map((change: StatusChange, index) => (
+                        <div key={change.id} className="relative">
+                          {index !== sortedStatusHistory.length - 1 && (
+                            <div className="absolute left-3 top-5 w-0.5 h-full -ml-px bg-gray-200 z-0"></div>
+                          )}
+                          <div className="flex items-start gap-3 relative z-10">
+                            <div className="rounded-full w-6 h-6 bg-milma-blue/20 flex items-center justify-center">
+                              <Clock className="h-3 w-3 text-milma-blue" />
                             </div>
-                            <div className="text-xs text-gray-500 mt-1 flex items-center justify-between">
-                              <span>{formatDate(change.timestamp)}</span>
-                              <span className="font-medium">by {change.changedBy}</span>
+                            <div className="flex-1">
+                              <div className="text-sm">
+                                Status changed from <span className="font-medium">{change.previousStatus}</span> to <span className="font-medium">{change.newStatus}</span>
+                              </div>
+                              <div className="text-sm mt-1">
+                                <p className="text-gray-700">{change.remarks}</p>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                <span>{formatDate(change.timestamp)}</span>
+                                <span className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  <span className="font-medium">{change.changedBy}</span>
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 )}
               </CardContent>
             </Card>

@@ -40,11 +40,11 @@ const TaskCard = ({ task }: TaskCardProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending':
-        return 'border-l-milma-pending';
+        return 'border-l-red-500';
       case 'In Progress':
-        return 'border-l-milma-progress';
+        return 'border-l-amber-500';
       case 'Closed':
-        return 'border-l-milma-closed';
+        return 'border-l-green-500';
       default:
         return 'border-l-gray-300';
     }
@@ -54,11 +54,11 @@ const TaskCard = ({ task }: TaskCardProps) => {
   const getStatusGlow = (status: string) => {
     switch (status) {
       case 'Pending':
-        return 'before:bg-milma-pending/10';
+        return 'before:bg-red-500/10';
       case 'In Progress':
-        return 'before:bg-milma-progress/10';
+        return 'before:bg-amber-500/10';
       case 'Closed':
-        return 'before:bg-milma-closed/10';
+        return 'before:bg-green-500/10';
       default:
         return 'before:bg-gray-300/10';
     }

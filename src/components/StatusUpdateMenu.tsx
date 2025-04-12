@@ -70,9 +70,10 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
         .from('tasks')
         .select('*')
         .eq('id', taskId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid errors
       
       if (taskError) throw taskError;
+      if (!taskData) throw new Error("Task not found");
       
       // 2. Update the task status
       const { error: updateError } = await supabase
@@ -119,11 +120,11 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
   const getStatusIcon = (status: Status) => {
     switch (status) {
       case 'Pending':
-        return <Clock className="h-4 w-4 text-milma-pending" />;
+        return <Clock className="h-4 w-4 text-red-500" />;
       case 'In Progress':
-        return <ArrowUpCircle className="h-4 w-4 text-milma-progress" />;
+        return <ArrowUpCircle className="h-4 w-4 text-amber-500" />;
       case 'Closed':
-        return <CheckCircle2 className="h-4 w-4 text-milma-closed" />;
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       default:
         return null;
     }
@@ -160,19 +161,19 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
                 <SelectContent>
                   <SelectItem value="Pending" disabled={currentStatus === 'Pending'}>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-milma-pending" />
+                      <Clock className="h-4 w-4 text-red-500" />
                       <span>Pending</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="In Progress" disabled={currentStatus === 'In Progress'}>
                     <div className="flex items-center gap-2">
-                      <ArrowUpCircle className="h-4 w-4 text-milma-progress" />
+                      <ArrowUpCircle className="h-4 w-4 text-amber-500" />
                       <span>In Progress</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="Closed" disabled={currentStatus === 'Closed'}>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-milma-closed" />
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
                       <span>Closed</span>
                     </div>
                   </SelectItem>
