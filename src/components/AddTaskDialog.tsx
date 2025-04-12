@@ -63,11 +63,12 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
       if (error) throw error;
       
       // Add the initial status history entry for task creation
+      // Using "Pending" as the previous status since "Created" violates the constraint
       const { error: historyError } = await supabase
         .from('status_history')
         .insert({
           task_id: data.id,
-          previous_status: 'Created',
+          previous_status: 'Pending', // Changed from 'Created' to 'Pending'
           new_status: 'Pending',
           user_id: user.id,
           user_name: user.email || 'Unknown User',
