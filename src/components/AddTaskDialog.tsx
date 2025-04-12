@@ -62,6 +62,9 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
       
       if (error) throw error;
       
+      // Use email as the user identifier in status history
+      const userEmail = user.email || 'Unknown User';
+      
       // Add the initial status history entry for task creation
       // Using "Pending" as the previous status since "Created" violates the constraint
       const { error: historyError } = await supabase
@@ -71,7 +74,7 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
           previous_status: 'Pending', // Changed from 'Created' to 'Pending'
           new_status: 'Pending',
           user_id: user.id,
-          user_name: user.email || 'Unknown User',
+          user_name: userEmail,
           remarks: 'Task created'
         });
       

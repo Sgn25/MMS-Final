@@ -89,7 +89,8 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
       
       if (updateError) throw updateError;
       
-      // 3. Add status change to history
+      // 3. Add status change to history - use email as user identifier
+      const userEmail = user.email || 'Unknown User';
       const { error: historyError } = await supabase
         .from('status_history')
         .insert({
@@ -97,7 +98,7 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
           previous_status: currentStatus,
           new_status: selectedStatus,
           user_id: user.id,
-          user_name: user.email || 'Unknown User',
+          user_name: userEmail,
           remarks: remarks
         });
       
@@ -110,7 +111,7 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
           status: selectedStatus as any,
           remarks: remarks
         },
-        user.email || 'Unknown User'
+        userEmail
       );
       
       toast.success(`Task status updated to ${selectedStatus}`);
