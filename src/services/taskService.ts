@@ -29,10 +29,14 @@ export const taskService = {
 
       if (historyError) throw historyError;
 
-      // Map database tasks to frontend tasks
+      // Map database tasks to frontend tasks with proper type casting
       const tasks = tasksData.map(task => {
         return mapDbTaskToTask(
-          task, 
+          {
+            ...task,
+            status: task.status as Status,
+            priority: task.priority as Priority
+          }, 
           statusHistoryData.filter(history => history.task_id === task.id)
         );
       });
@@ -66,7 +70,15 @@ export const taskService = {
 
       if (historyError) throw historyError;
 
-      return mapDbTaskToTask(taskData, statusHistoryData);
+      // Cast the status and priority to their enum types
+      return mapDbTaskToTask(
+        {
+          ...taskData,
+          status: taskData.status as Status,
+          priority: taskData.priority as Priority
+        }, 
+        statusHistoryData
+      );
     } catch (error: any) {
       console.error('Error fetching task by ID:', error);
       toast.error(`Failed to fetch task: ${error.message}`);
