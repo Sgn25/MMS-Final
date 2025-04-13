@@ -38,6 +38,11 @@ export const taskService = {
             priority: task.priority as Priority
           }, 
           statusHistoryData.filter(history => history.task_id === task.id)
+            .map(history => ({
+              ...history,
+              previous_status: history.previous_status as Status,
+              new_status: history.new_status as Status
+            }))
         );
       });
 
@@ -77,7 +82,11 @@ export const taskService = {
           status: taskData.status as Status,
           priority: taskData.priority as Priority
         }, 
-        statusHistoryData
+        statusHistoryData.map(history => ({
+          ...history,
+          previous_status: history.previous_status as Status,
+          new_status: history.new_status as Status
+        }))
       );
     } catch (error: any) {
       console.error('Error fetching task by ID:', error);
