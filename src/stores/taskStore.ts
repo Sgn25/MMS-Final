@@ -29,7 +29,10 @@ const useTaskStore = create<TaskState>((set, get) => ({
   error: null,
 
   // Core state setters
-  setTasks: (tasks) => set({ tasks }),
+  setTasks: (tasks) => {
+    console.log(`Setting ${tasks.length} tasks in store`);
+    set({ tasks });
+  },
   
   upsertTask: (newTask) => {
     const currentTasks = get().tasks;
@@ -57,8 +60,10 @@ const useTaskStore = create<TaskState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const tasks = await taskService.fetchTasks();
+      console.log(`Fetched ${tasks.length} tasks in fetchTasks()`);
       set({ tasks, loading: false });
     } catch (error: any) {
+      console.error('Error in fetchTasks:', error);
       set({ error: error.message, loading: false });
     }
   },
@@ -67,9 +72,11 @@ const useTaskStore = create<TaskState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await taskService.addTask(task);
+      console.log('Task added successfully');
       set({ loading: false });
       // We don't update the state here - the realtime subscription will handle it
     } catch (error: any) {
+      console.error('Error in addTask:', error);
       set({ error: error.message, loading: false });
     }
   },
@@ -78,9 +85,11 @@ const useTaskStore = create<TaskState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await taskService.updateTask(taskId, updatedTask, userId);
+      console.log('Task updated successfully');
       set({ loading: false });
       // We don't update the state here - the realtime subscription will handle it
     } catch (error: any) {
+      console.error('Error in updateTask:', error);
       set({ error: error.message, loading: false });
     }
   },
@@ -89,9 +98,11 @@ const useTaskStore = create<TaskState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await taskService.deleteTask(taskId);
+      console.log('Task deleted successfully');
       set({ loading: false });
       // We don't update the state here - the realtime subscription will handle it
     } catch (error: any) {
+      console.error('Error in deleteTask:', error);
       set({ error: error.message, loading: false });
     }
   },
@@ -119,7 +130,10 @@ const initializeRealtimeSubscription = () => {
     useTaskStore.getState().setTasks(tasks);
   };
 
-  realtimeService.setupTaskSubscription(updateStoreFromRealtime);
+  // Add a small delay to prevent initial duplicate fetches
+  setTimeout(() => {
+    realtimeService.setupTaskSubscription(updateStoreFromRealtime);
+  }, 100);
 };
 
 // Initialize store and subscription

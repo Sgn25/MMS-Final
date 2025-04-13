@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -8,8 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
 import useTaskStore from '@/stores/taskStore';
 
 interface AddTaskDialogProps {
@@ -19,7 +16,6 @@ interface AddTaskDialogProps {
 
 const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { addTask } = useTaskStore();
   
   const [title, setTitle] = useState('');
@@ -45,43 +41,7 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
     setIsSubmitting(true);
     
     try {
-      // Use both Supabase and local state management
-      // First add to Supabase
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert({
-          title,
-          description,
-          status,
-          priority,
-          assigned_to: assignedTo || 'Unassigned',
-          user_id: user.id
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      // Use email as the user identifier in status history
-      const userEmail = user.email || 'Unknown User';
-      
-      // Add the initial status history entry for task creation
-      // Using "Pending" as the previous status since "Created" violates the constraint
-      const { error: historyError } = await supabase
-        .from('status_history')
-        .insert({
-          task_id: data.id,
-          previous_status: 'Pending', // Changed from 'Created' to 'Pending'
-          new_status: 'Pending',
-          user_id: user.id,
-          user_name: userEmail,
-          remarks: 'Task created'
-        });
-      
-      if (historyError) throw historyError;
-      
-      // Also update local state using zustand store
-      addTask({
+      await addTask({
         title,
         description,
         status: status as any,
@@ -90,9 +50,6 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
       });
       
       toast.success('Task added successfully');
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
       
       resetForm();
       onOpenChange(false);

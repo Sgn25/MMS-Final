@@ -2,11 +2,11 @@
 import { supabase } from '@/integrations/supabase/client';
 import { taskService } from './taskService';
 import { Task } from '@/types/task';
-import { mapDbTaskToTask } from '@/utils/taskMappers';
 
 type RealtimeCallback = (tasks: Task[]) => void;
 let channel: ReturnType<typeof supabase.channel> | null = null;
 let stateCallback: RealtimeCallback | null = null;
+let isFirstSubscription = true;
 
 /**
  * Service for handling real-time updates from Supabase
@@ -43,7 +43,14 @@ export const realtimeService = {
 
           // After an insert, fetch all tasks to ensure we have the latest data
           try {
+            // Debounce the fetch to avoid multiple calls
+            if (isFirstSubscription) {
+              isFirstSubscription = false;
+              return; // Skip the first update when subscription is set up
+            }
+            console.log('Fetching tasks after INSERT event');
             const tasks = await taskService.fetchTasks();
+            console.log(`Received ${tasks.length} tasks after INSERT`);
             if (stateCallback) stateCallback(tasks);
           } catch (error) {
             console.error('Error fetching tasks after insert:', error);
@@ -64,9 +71,10 @@ export const realtimeService = {
             return;
           }
 
-          // After an update, fetch all tasks to ensure we have the latest data
           try {
+            console.log('Fetching tasks after UPDATE event');
             const tasks = await taskService.fetchTasks();
+            console.log(`Received ${tasks.length} tasks after UPDATE`);
             if (stateCallback) stateCallback(tasks);
           } catch (error) {
             console.error('Error fetching tasks after update:', error);
@@ -87,9 +95,10 @@ export const realtimeService = {
             return;
           }
           
-          // After a delete, fetch all tasks to ensure we have the latest data
           try {
+            console.log('Fetching tasks after DELETE event');
             const tasks = await taskService.fetchTasks();
+            console.log(`Received ${tasks.length} tasks after DELETE`);
             if (stateCallback) stateCallback(tasks);
           } catch (error) {
             console.error('Error fetching tasks after delete:', error);
@@ -106,9 +115,10 @@ export const realtimeService = {
         async (payload) => {
           console.log('Status history change:', payload);
           
-          // When status history changes, fetch all tasks again
           try {
+            console.log('Fetching tasks after status history change');
             const tasks = await taskService.fetchTasks();
+            console.log(`Received ${tasks.length} tasks after status history change`);
             if (stateCallback) stateCallback(tasks);
           } catch (error) {
             console.error('Error fetching tasks after status history change:', error);
@@ -132,6 +142,7 @@ export const realtimeService = {
       channel = null;
     }
     stateCallback = null;
+    isFirstSubscription = true;
   }
 };
 
