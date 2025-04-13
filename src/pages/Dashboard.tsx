@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import useTaskStore from '@/stores/taskStore';
@@ -31,9 +32,21 @@ const Dashboard = () => {
     return tasks.filter(task => task.status === selectedStatus);
   }, [tasks, selectedStatus]);
 
-  const pendingTasks = useTaskStore.getState().getTasksByStatus('Pending');
-  const inProgressTasks = useTaskStore.getState().getTasksByStatus('In Progress');
-  const closedTasks = useTaskStore.getState().getTasksByStatus('Closed');
+  // Compute counts from the current state instead of using getState
+  const pendingTasks = useMemo(() => 
+    tasks.filter(task => task.status === 'Pending'), 
+    [tasks]
+  );
+  
+  const inProgressTasks = useMemo(() => 
+    tasks.filter(task => task.status === 'In Progress'), 
+    [tasks]
+  );
+  
+  const closedTasks = useMemo(() => 
+    tasks.filter(task => task.status === 'Closed'), 
+    [tasks]
+  );
 
   // Extract user display information safely
   const userEmail = user?.email || '';
@@ -186,7 +199,9 @@ const Dashboard = () => {
             {selectedStatus !== 'all' ? `${selectedStatus} Tasks` : 'All Tasks'}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTasks.length === 0 ? (
+            {loading ? (
+              <p className="text-gray-500 col-span-full text-center py-12">Loading tasks...</p>
+            ) : filteredTasks.length === 0 ? (
               <p className="text-gray-500 col-span-full text-center py-12">No tasks found</p>
             ) : (
               filteredTasks.map(task => (

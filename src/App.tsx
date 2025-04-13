@@ -11,11 +11,19 @@ import Dashboard from "./pages/Dashboard";
 import TaskDetail from "./pages/TaskDetail";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { cleanupRealtimeSubscription } from "./stores/taskStore";
 
 const App = () => {
   // Create a new QueryClient instance inside the component
   const [queryClient] = useState(() => new QueryClient());
+
+  // Clean up realtime subscription on unmount
+  useEffect(() => {
+    return () => {
+      cleanupRealtimeSubscription();
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

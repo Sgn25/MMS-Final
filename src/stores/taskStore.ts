@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { Status, Priority, Task, StatusChange } from '@/types/task';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,12 +14,38 @@ interface TaskState {
   deleteTask: (taskId: string) => Promise<void>;
   getTaskById: (taskId: string) => Promise<Task | null>;
   getTasksByStatus: (status: Status) => Task[];
+  setTasks: (tasks: Task[]) => void; // Add direct setter for real-time updates
+  upsertTask: (task: Task) => void; // Add upsert method for real-time updates
+  removeTask: (taskId: string) => void; // Add remove method for real-time updates
 }
 
 const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
   loading: false,
   error: null,
+
+  setTasks: (tasks) => set({ tasks }),
+  
+  upsertTask: (newTask) => {
+    const currentTasks = get().tasks;
+    const taskIndex = currentTasks.findIndex(task => task.id === newTask.id);
+    
+    if (taskIndex >= 0) {
+      // Update existing task
+      const updatedTasks = [...currentTasks];
+      updatedTasks[taskIndex] = newTask;
+      set({ tasks: updatedTasks });
+    } else {
+      // Add new task
+      set({ tasks: [newTask, ...currentTasks] });
+    }
+  },
+  
+  removeTask: (taskId) => {
+    const currentTasks = get().tasks;
+    const updatedTasks = currentTasks.filter(task => task.id !== taskId);
+    set({ tasks: updatedTasks });
+  },
 
   fetchTasks: async () => {
     set({ loading: true, error: null });
@@ -106,9 +133,8 @@ const useTaskStore = create<TaskState>((set, get) => ({
 
       if (historyError) throw historyError;
 
-      // Fetch updated tasks list
-      await get().fetchTasks();
-
+      // NOTE: we do NOT manually update the store here
+      // We will let the realtime subscription handle this
       set({ loading: false });
       toast.success('Task created successfully');
     } catch (error: any) {
@@ -129,7 +155,7 @@ const useTaskStore = create<TaskState>((set, get) => ({
         .from('tasks')
         .select('*')
         .eq('id', taskId)
-        .single();
+        .maybeSingle();
 
       if (fetchError) throw fetchError;
       if (!currentTask) throw new Error('Task not found');
@@ -165,6 +191,8 @@ const useTaskStore = create<TaskState>((set, get) => ({
         if (historyError) throw historyError;
       }
 
+      // NOTE: we do NOT manually update the store here
+      // We will let the realtime subscription handle this
       set({ loading: false });
       toast.success('Task updated successfully');
     } catch (error: any) {
@@ -196,6 +224,8 @@ const useTaskStore = create<TaskState>((set, get) => ({
 
       if (taskError) throw taskError;
 
+      // NOTE: we do NOT manually update the store here
+      // We will let the realtime subscription handle this
       set({ loading: false });
       toast.success('Task deleted successfully');
     } catch (error: any) {
@@ -210,7 +240,7 @@ const useTaskStore = create<TaskState>((set, get) => ({
         .from('tasks')
         .select('*')
         .eq('id', taskId)
-        .single();
+        .maybeSingle();
 
       if (taskError) throw taskError;
       if (!taskData) return null;
@@ -254,27 +284,145 @@ const useTaskStore = create<TaskState>((set, get) => ({
   }
 }));
 
-// Set up real-time subscription
+// Improved real-time subscription handling
 let channel: any = null;
 
 const setupRealtimeSubscription = () => {
   if (channel) {
+    console.log('Unsubscribing from existing channel');
     channel.unsubscribe();
+    channel = null;
   }
 
   channel = supabase
-    .channel('tasks_channel')
+    .channel('tasks-realtime-channel')
     .on(
       'postgres_changes',
       { 
-        event: '*', 
+        event: 'INSERT', 
         schema: 'public', 
         table: 'tasks'
       },
       async (payload) => {
-        console.log('Tasks table change:', payload);
-        // Always fetch the latest tasks list
-        await useTaskStore.getState().fetchTasks();
+        console.log('Task inserted:', payload);
+        // Get the newly inserted task
+        const { data: taskData, error: taskError } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('id', payload.new.id)
+          .maybeSingle();
+        
+        if (taskError || !taskData) {
+          console.error('Error fetching inserted task:', taskError);
+          return;
+        }
+        
+        // Get status history for this task
+        const { data: statusHistoryData, error: historyError } = await supabase
+          .from('status_history')
+          .select('*')
+          .eq('task_id', payload.new.id);
+          
+        if (historyError) {
+          console.error('Error fetching status history:', historyError);
+          return;
+        }
+        
+        // Map to our task format
+        const newTask: Task = {
+          id: taskData.id,
+          title: taskData.title,
+          description: taskData.description || '',
+          status: taskData.status as Status,
+          priority: taskData.priority as Priority,
+          assignedTo: taskData.assigned_to,
+          createdAt: taskData.created_at,
+          updatedAt: taskData.updated_at,
+          userId: taskData.user_id,
+          statusHistory: (statusHistoryData || []).map(history => ({
+            id: history.id,
+            taskId: history.task_id,
+            previousStatus: history.previous_status as Status,
+            newStatus: history.new_status as Status,
+            changedBy: history.user_name,
+            remarks: history.remarks,
+            timestamp: history.created_at
+          }))
+        };
+        
+        // Update the store
+        useTaskStore.getState().upsertTask(newTask);
+      }
+    )
+    .on(
+      'postgres_changes',
+      { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'tasks'
+      },
+      async (payload) => {
+        console.log('Task updated:', payload);
+        // Get the updated task with all fields
+        const { data: taskData, error: taskError } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('id', payload.new.id)
+          .maybeSingle();
+        
+        if (taskError || !taskData) {
+          console.error('Error fetching updated task:', taskError);
+          return;
+        }
+        
+        // Get status history for this task
+        const { data: statusHistoryData, error: historyError } = await supabase
+          .from('status_history')
+          .select('*')
+          .eq('task_id', payload.new.id);
+          
+        if (historyError) {
+          console.error('Error fetching status history:', historyError);
+          return;
+        }
+        
+        // Map to our task format
+        const updatedTask: Task = {
+          id: taskData.id,
+          title: taskData.title,
+          description: taskData.description || '',
+          status: taskData.status as Status,
+          priority: taskData.priority as Priority,
+          assignedTo: taskData.assigned_to,
+          createdAt: taskData.created_at,
+          updatedAt: taskData.updated_at,
+          userId: taskData.user_id,
+          statusHistory: (statusHistoryData || []).map(history => ({
+            id: history.id,
+            taskId: history.task_id,
+            previousStatus: history.previous_status as Status,
+            newStatus: history.new_status as Status,
+            changedBy: history.user_name,
+            remarks: history.remarks,
+            timestamp: history.created_at
+          }))
+        };
+        
+        // Update the store
+        useTaskStore.getState().upsertTask(updatedTask);
+      }
+    )
+    .on(
+      'postgres_changes',
+      { 
+        event: 'DELETE', 
+        schema: 'public', 
+        table: 'tasks'
+      },
+      (payload) => {
+        console.log('Task deleted:', payload);
+        // Remove task from store
+        useTaskStore.getState().removeTask(payload.old.id);
       }
     )
     .on(
@@ -286,8 +434,58 @@ const setupRealtimeSubscription = () => {
       },
       async (payload) => {
         console.log('Status history change:', payload);
-        // Always fetch the latest tasks list
-        await useTaskStore.getState().fetchTasks();
+        // When status history changes, fetch the related task
+        if (payload.new) {
+          const taskId = payload.new.task_id;
+          
+          // Get the updated task
+          const { data: taskData, error: taskError } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('id', taskId)
+            .maybeSingle();
+          
+          if (taskError || !taskData) {
+            console.error('Error fetching task for history update:', taskError);
+            return;
+          }
+          
+          // Get all status history for this task
+          const { data: statusHistoryData, error: historyError } = await supabase
+            .from('status_history')
+            .select('*')
+            .eq('task_id', taskId);
+            
+          if (historyError) {
+            console.error('Error fetching status history:', historyError);
+            return;
+          }
+          
+          // Map to our task format
+          const updatedTask: Task = {
+            id: taskData.id,
+            title: taskData.title,
+            description: taskData.description || '',
+            status: taskData.status as Status,
+            priority: taskData.priority as Priority,
+            assignedTo: taskData.assigned_to,
+            createdAt: taskData.created_at,
+            updatedAt: taskData.updated_at,
+            userId: taskData.user_id,
+            statusHistory: (statusHistoryData || []).map(history => ({
+              id: history.id,
+              taskId: history.task_id,
+              previousStatus: history.previous_status as Status,
+              newStatus: history.new_status as Status,
+              changedBy: history.user_name,
+              remarks: history.remarks,
+              timestamp: history.created_at
+            }))
+          };
+          
+          // Update the store
+          useTaskStore.getState().upsertTask(updatedTask);
+        }
       }
     )
     .subscribe((status) => {
@@ -304,7 +502,10 @@ const setupRealtimeSubscription = () => {
 // Initialize store and subscription
 const initializeStore = async () => {
   try {
+    // First load tasks
     await useTaskStore.getState().fetchTasks();
+    
+    // Then set up realtime subscription
     setupRealtimeSubscription();
   } catch (error) {
     console.error('Failed to initialize store:', error);
