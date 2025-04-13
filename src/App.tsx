@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,8 +28,7 @@ const App = () => {
   useEffect(() => {
     // Re-setup realtime subscription when the app mounts
     // This helps ensure we have realtime updates after page reloads or navigation
-    import('./stores/taskStore').then(module => {
-      // The import will trigger the initialization
+    import('./stores/taskStore').then(() => {
       console.log('App mounted, realtime subscription should be active');
     });
     
