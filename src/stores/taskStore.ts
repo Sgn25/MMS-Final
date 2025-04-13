@@ -14,9 +14,9 @@ interface TaskState {
   deleteTask: (taskId: string) => Promise<void>;
   getTaskById: (taskId: string) => Promise<Task | null>;
   getTasksByStatus: (status: Status) => Task[];
-  setTasks: (tasks: Task[]) => void; // Add direct setter for real-time updates
-  upsertTask: (task: Task) => void; // Add upsert method for real-time updates
-  removeTask: (taskId: string) => void; // Add remove method for real-time updates
+  setTasks: (tasks: Task[]) => void;
+  upsertTask: (task: Task) => void;
+  removeTask: (taskId: string) => void;
 }
 
 const useTaskStore = create<TaskState>((set, get) => ({
@@ -285,14 +285,13 @@ const useTaskStore = create<TaskState>((set, get) => ({
 }));
 
 // Improved real-time subscription handling
-let channel: any = null;
+let channel: ReturnType<typeof supabase.channel> | null = null;
 
 const setupRealtimeSubscription = () => {
-  if (channel) {
-    console.log('Unsubscribing from existing channel');
-    channel.unsubscribe();
-    channel = null;
-  }
+  // Clean up any existing subscription to prevent duplicates
+  cleanupRealtimeSubscription();
+
+  console.log('Setting up new real-time subscription');
 
   channel = supabase
     .channel('tasks-realtime-channel')
@@ -305,6 +304,11 @@ const setupRealtimeSubscription = () => {
       },
       async (payload) => {
         console.log('Task inserted:', payload);
+        if (!payload.new || typeof payload.new.id !== 'string') {
+          console.error('Invalid payload in INSERT event:', payload);
+          return;
+        }
+
         // Get the newly inserted task
         const { data: taskData, error: taskError } = await supabase
           .from('tasks')
@@ -363,6 +367,11 @@ const setupRealtimeSubscription = () => {
       },
       async (payload) => {
         console.log('Task updated:', payload);
+        if (!payload.new || typeof payload.new.id !== 'string') {
+          console.error('Invalid payload in UPDATE event:', payload);
+          return;
+        }
+
         // Get the updated task with all fields
         const { data: taskData, error: taskError } = await supabase
           .from('tasks')
@@ -421,6 +430,11 @@ const setupRealtimeSubscription = () => {
       },
       (payload) => {
         console.log('Task deleted:', payload);
+        if (!payload.old || typeof payload.old.id !== 'string') {
+          console.error('Invalid payload in DELETE event:', payload);
+          return;
+        }
+        
         // Remove task from store
         useTaskStore.getState().removeTask(payload.old.id);
       }
@@ -435,7 +449,7 @@ const setupRealtimeSubscription = () => {
       async (payload) => {
         console.log('Status history change:', payload);
         // When status history changes, fetch the related task
-        if (payload.new && 'task_id' in payload.new) {
+        if (payload.new && 'task_id' in payload.new && typeof payload.new.task_id === 'string') {
           const taskId = payload.new.task_id;
           
           // Get the updated task
@@ -489,24 +503,33 @@ const setupRealtimeSubscription = () => {
       }
     )
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('Real-time subscription established');
-      } else {
-        console.log('Subscription status:', status);
-      }
+      console.log('Real-time subscription status:', status);
     });
 
   return channel;
 };
 
+// Clean up function to prevent duplicate subscriptions
+export const cleanupRealtimeSubscription = () => {
+  if (channel) {
+    console.log('Cleaning up existing real-time subscription');
+    channel.unsubscribe();
+    channel = null;
+  }
+};
+
 // Initialize store and subscription
 const initializeStore = async () => {
   try {
+    console.log('Initializing task store');
+    
     // First load tasks
     await useTaskStore.getState().fetchTasks();
     
     // Then set up realtime subscription
     setupRealtimeSubscription();
+    
+    console.log('Task store initialized successfully');
   } catch (error) {
     console.error('Failed to initialize store:', error);
   }
@@ -514,14 +537,6 @@ const initializeStore = async () => {
 
 // Initialize store when the module is loaded
 initializeStore();
-
-// Cleanup function
-export const cleanupRealtimeSubscription = () => {
-  if (channel) {
-    channel.unsubscribe();
-    channel = null;
-  }
-};
 
 // Add cleanup on window unload
 if (typeof window !== 'undefined') {

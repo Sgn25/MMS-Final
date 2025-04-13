@@ -11,15 +11,30 @@ import Dashboard from "./pages/Dashboard";
 import TaskDetail from "./pages/TaskDetail";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { cleanupRealtimeSubscription } from "./stores/taskStore";
 
 const App = () => {
-  // Create a new QueryClient instance inside the component
-  const [queryClient] = useState(() => new QueryClient());
+  // Create a new QueryClient instance
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000, // 1 minute
+        retry: 1,
+      },
+    },
+  });
 
   // Clean up realtime subscription on unmount
   useEffect(() => {
+    // Re-setup realtime subscription when the app mounts
+    // This helps ensure we have realtime updates after page reloads or navigation
+    import('./stores/taskStore').then(module => {
+      // The import will trigger the initialization
+      console.log('App mounted, realtime subscription should be active');
+    });
+    
+    // Clean up on unmount
     return () => {
       cleanupRealtimeSubscription();
     };

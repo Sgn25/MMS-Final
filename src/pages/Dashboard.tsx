@@ -11,7 +11,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Status } from '@/types/task';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -23,8 +22,10 @@ const Dashboard = () => {
   
   // Fetch tasks on initial load
   useEffect(() => {
+    console.log('Dashboard mounted, fetching tasks');
     fetchTasks();
-  }, [fetchTasks]);
+    // We don't need to put fetchTasks in the dependency array as it's a stable function reference
+  }, []);
 
   // Filter tasks based on selected status
   const filteredTasks = useMemo(() => {
@@ -84,6 +85,11 @@ const Dashboard = () => {
       toast.error('Failed to sign out. Please try again.');
     }
   };
+
+  // Log when tasks change for debugging purposes
+  useEffect(() => {
+    console.log('Tasks updated in Dashboard, count:', tasks.length);
+  }, [tasks]);
 
   return (
     <div className="min-h-screen bg-gray-50">
