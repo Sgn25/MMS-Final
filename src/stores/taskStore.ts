@@ -435,7 +435,7 @@ const setupRealtimeSubscription = () => {
       async (payload) => {
         console.log('Status history change:', payload);
         // When status history changes, fetch the related task
-        if (payload.new) {
+        if (payload.new && 'task_id' in payload.new) {
           const taskId = payload.new.task_id;
           
           // Get the updated task
