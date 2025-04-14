@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -93,13 +92,14 @@ const TaskCard = ({ task }: TaskCardProps) => {
     return 'Unknown';
   };
 
-  // Get the last updater email (most recent status history entry)
+  // Get the last updater email (most recent status history entry that isn't the creation entry)
   const getLastUpdatedBy = () => {
-    if (task.statusHistory && task.statusHistory.length > 0) {
-      // Get the most recent entry
+    if (task.statusHistory && task.statusHistory.length > 1) {
+      // Get the most recent entry that isn't the creation entry
       const sortedHistory = [...task.statusHistory].sort((a, b) => 
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
+      // First entry is the most recent update
       return sortedHistory[0].changedBy;
     }
     return 'Unknown';

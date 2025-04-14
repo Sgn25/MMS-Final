@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -145,6 +146,14 @@ const TaskDetail = () => {
   const sortedStatusHistory = [...task.statusHistory].sort((a, b) => {
     return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
   });
+
+  // Check if an entry is the initial creation entry
+  const isInitialEntry = (entry: StatusChange, index: number) => {
+    if (sortedStatusHistory.length - 1 === index) {
+      return true;
+    }
+    return false;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -334,17 +343,23 @@ const TaskDetail = () => {
                             </div>
                             <div className="flex-1">
                               <div className="text-sm">
-                                Status changed from <span className="font-medium">{change.previousStatus}</span> to <span className="font-medium">{change.newStatus}</span>
+                                {isInitialEntry(change, index) ? (
+                                  <span>Task created by <span className="font-medium">{change.changedBy}</span></span>
+                                ) : (
+                                  <span>Status changed from <span className="font-medium">{change.previousStatus}</span> to <span className="font-medium">{change.newStatus}</span></span>
+                                )}
                               </div>
                               <div className="text-sm mt-1">
                                 <p className="text-gray-700">{change.remarks}</p>
                               </div>
                               <div className="text-xs text-gray-500 mt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                                 <span>{formatDate(change.timestamp)}</span>
-                                <span className="flex items-center gap-1">
-                                  <Mail className="h-3 w-3" />
-                                  <span className="font-medium">{change.changedBy}</span>
-                                </span>
+                                {!isInitialEntry(change, index) && (
+                                  <span className="flex items-center gap-1">
+                                    <Mail className="h-3 w-3" />
+                                    <span className="font-medium">{change.changedBy}</span>
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

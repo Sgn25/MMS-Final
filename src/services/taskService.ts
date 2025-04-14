@@ -119,7 +119,7 @@ export const taskService = {
 
       if (error) throw error;
 
-      // Add initial status history entry
+      // Add initial status history entry with "Task created" remarks
       const { error: historyError } = await supabase
         .from('status_history')
         .insert({
@@ -127,7 +127,7 @@ export const taskService = {
           previous_status: task.status,
           new_status: task.status,
           user_id: session.user.id,
-          user_name: session.user.email,
+          user_name: session.user.email || 'Unknown User',
           remarks: 'Task created'
         });
 
@@ -148,7 +148,7 @@ export const taskService = {
           previous_status: data.status as Status,
           new_status: data.status as Status,
           user_id: session.user.id,
-          user_name: session.user.email,
+          user_name: session.user.email || 'Unknown User',
           remarks: 'Task created',
           created_at: data.created_at
         }]
