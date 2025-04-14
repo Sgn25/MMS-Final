@@ -54,10 +54,10 @@ const Dashboard = () => {
   
   // Map specific emails to names
   const emailToNameMap = useMemo(() => ({
-    'wyd.eng@malabarmilma.coop': 'Sarath',
-    'wyd.de.mrcmpu@gmail.com': 'Ameen',
-    'wyd.tsengg@gmail.com': 'Dineesh',
-    'wyd.eng.mrcmpu@gmail.com': 'Akhil'
+    'wyd.eng@malabarmilma.coop': 'Sarath DE',
+    'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
+    'wyd.tsengg@gmail.com': 'Dineesh AE',
+    'wyd.eng.mrcmpu@gmail.com': 'Akhil AE'
   }), []);
   
   // Get user name from email mapping or metadata or default to email username
@@ -102,7 +102,7 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-right">
-              <p className="text-sm font-medium">{userName || userEmail}</p>
+              <p className="text-sm font-medium">{userName}</p>
               <p className="text-xs text-gray-500">Maintenance Manager</p>
             </div>
             <Button 

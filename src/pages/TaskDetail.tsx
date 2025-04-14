@@ -30,6 +30,19 @@ const TaskDetail = () => {
   const [assignedTo, setAssignedTo] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   
+  // Map specific emails to names
+  const emailToNameMap: Record<string, string> = {
+    'wyd.eng@malabarmilma.coop': 'Sarath DE',
+    'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
+    'wyd.tsengg@gmail.com': 'Dineesh AE',
+    'wyd.eng.mrcmpu@gmail.com': 'Akhil AE'
+  };
+
+  // Function to get name from email
+  const getNameFromEmail = (email: string): string => {
+    return emailToNameMap[email] || email.split('@')[0] || email;
+  };
+  
   useEffect(() => {
     const fetchTask = async () => {
       if (id) {
@@ -344,7 +357,7 @@ const TaskDetail = () => {
                             <div className="flex-1">
                               <div className="text-sm">
                                 {isInitialEntry(change, index) ? (
-                                  <span>Task created by <span className="font-medium">{change.changedBy}</span></span>
+                                  <span>Task created by <span className="font-medium">{getNameFromEmail(change.changedBy)}</span></span>
                                 ) : (
                                   <span>Status changed from <span className="font-medium">{change.previousStatus}</span> to <span className="font-medium">{change.newStatus}</span></span>
                                 )}
@@ -357,7 +370,7 @@ const TaskDetail = () => {
                                 {!isInitialEntry(change, index) && (
                                   <span className="flex items-center gap-1">
                                     <Mail className="h-3 w-3" />
-                                    <span className="font-medium">{change.changedBy}</span>
+                                    <span className="font-medium">{getNameFromEmail(change.changedBy)}</span>
                                   </span>
                                 )}
                               </div>

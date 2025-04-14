@@ -37,6 +37,19 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
   const [remarks, setRemarks] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Map specific emails to names
+  const emailToNameMap: Record<string, string> = {
+    'wyd.eng@malabarmilma.coop': 'Sarath DE',
+    'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
+    'wyd.tsengg@gmail.com': 'Dineesh AE',
+    'wyd.eng.mrcmpu@gmail.com': 'Akhil AE'
+  };
+
+  // Function to get name from email
+  const getNameFromEmail = (email: string): string => {
+    return emailToNameMap[email] || email.split('@')[0] || email;
+  };
+  
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
     if (!open) {

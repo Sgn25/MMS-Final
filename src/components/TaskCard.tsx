@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,19 @@ const TaskCard = ({ task }: TaskCardProps) => {
   const { deleteTask } = useTaskStore();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Map specific emails to names
+  const emailToNameMap: Record<string, string> = {
+    'wyd.eng@malabarmilma.coop': 'Sarath DE',
+    'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
+    'wyd.tsengg@gmail.com': 'Dineesh AE',
+    'wyd.eng.mrcmpu@gmail.com': 'Akhil AE'
+  };
+
+  // Function to get name from email
+  const getNameFromEmail = (email: string): string => {
+    return emailToNameMap[email] || email.split('@')[0] || email;
+  };
 
   // Function to determine priority badge color
   const getPriorityColor = (priority: string) => {
@@ -87,7 +101,7 @@ const TaskCard = ({ task }: TaskCardProps) => {
       const sortedHistory = [...task.statusHistory].sort((a, b) => 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
-      return sortedHistory[0].changedBy;
+      return getNameFromEmail(sortedHistory[0].changedBy);
     }
     return 'Unknown';
   };
@@ -100,7 +114,7 @@ const TaskCard = ({ task }: TaskCardProps) => {
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
       // First entry is the most recent update
-      return sortedHistory[0].changedBy;
+      return getNameFromEmail(sortedHistory[0].changedBy);
     }
     return 'Unknown';
   };
