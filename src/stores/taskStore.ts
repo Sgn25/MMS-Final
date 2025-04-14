@@ -15,7 +15,7 @@ interface TaskState {
   removeTask: (taskId: string) => void;
   
   // API actions
-  fetchTasks: () => Promise<void>;
+  fetchTasks: () => Promise<Task[]>;
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'statusHistory'>) => Promise<void>;
   updateTask: (taskId: string, updatedTask: Partial<Task> & { remarks?: string }, userId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
@@ -74,16 +74,12 @@ const useTaskStore = create<TaskState>((set, get) => ({
   addTask: async (task) => {
     set({ loading: true, error: null });
     try {
-      const newTask = await taskService.addTask(task);
-      console.log('Task added successfully:', newTask);
+      await taskService.addTask(task);
+      console.log('Task added successfully');
       
-      // Update the local state immediately for better UX
-      if (newTask) {
-        const currentTasks = get().tasks;
-        set({ tasks: [newTask, ...currentTasks], loading: false });
-      } else {
-        set({ loading: false });
-      }
+      // We'll let the realtime service handle the update, rather than
+      // duplicating the task addition locally
+      set({ loading: false });
     } catch (error: any) {
       console.error('Error in addTask:', error);
       set({ error: error.message, loading: false });
@@ -95,17 +91,27 @@ const useTaskStore = create<TaskState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       console.log(`Updating task ${taskId} with data:`, updatedTask);
-      const updated = await taskService.updateTask(taskId, updatedTask, userId);
-      console.log('Task updated successfully:', updated);
+      await taskService.updateTask(taskId, updatedTask, userId);
+      console.log('Task update request sent successfully');
       
-      // Update the local state immediately for better UX
-      if (updated) {
+      // If this is a status update, update the local state immediately
+      if (updatedTask.status) {
         const currentTasks = get().tasks;
         const taskIndex = currentTasks.findIndex(task => task.id === taskId);
         
         if (taskIndex >= 0) {
+          // Create a shallow copy of the task
+          const updatedTaskCopy = {
+            ...currentTasks[taskIndex],
+            ...updatedTask,
+            updatedAt: new Date().toISOString()
+          };
+          
+          // Create a new tasks array with the updated task
           const updatedTasks = [...currentTasks];
-          updatedTasks[taskIndex] = updated;
+          updatedTasks[taskIndex] = updatedTaskCopy;
+          
+          // Update the store
           set({ tasks: updatedTasks, loading: false });
         } else {
           set({ loading: false });
