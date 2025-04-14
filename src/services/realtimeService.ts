@@ -35,23 +35,26 @@ export const realtimeService = {
           table: 'tasks'
         },
         async (payload) => {
-          console.log('Task inserted:', payload);
+          console.log('Task inserted event received:', payload);
           if (!payload.new || typeof payload.new.id !== 'string') {
             console.error('Invalid payload in INSERT event:', payload);
             return;
           }
 
-          // After an insert, fetch all tasks to ensure we have the latest data
+          // After an insert, fetch all tasks immediately to ensure we have the latest data
           try {
-            // Debounce the fetch to avoid multiple calls
             if (isFirstSubscription) {
               isFirstSubscription = false;
-              return; // Skip the first update when subscription is set up
+              console.log('Skipping initial subscription event');
+              return;
             }
             console.log('Fetching tasks after INSERT event');
             const tasks = await taskService.fetchTasks();
             console.log(`Received ${tasks.length} tasks after INSERT`);
-            if (stateCallback) stateCallback(tasks);
+            if (stateCallback) {
+              console.log('Calling stateCallback with updated tasks after INSERT');
+              stateCallback(tasks);
+            }
           } catch (error) {
             console.error('Error fetching tasks after insert:', error);
           }
@@ -65,7 +68,7 @@ export const realtimeService = {
           table: 'tasks'
         },
         async (payload) => {
-          console.log('Task updated:', payload);
+          console.log('Task updated event received:', payload);
           if (!payload.new || typeof payload.new.id !== 'string') {
             console.error('Invalid payload in UPDATE event:', payload);
             return;
@@ -75,7 +78,10 @@ export const realtimeService = {
             console.log('Fetching tasks after UPDATE event');
             const tasks = await taskService.fetchTasks();
             console.log(`Received ${tasks.length} tasks after UPDATE`);
-            if (stateCallback) stateCallback(tasks);
+            if (stateCallback) {
+              console.log('Calling stateCallback with updated tasks after UPDATE');
+              stateCallback(tasks);
+            }
           } catch (error) {
             console.error('Error fetching tasks after update:', error);
           }
@@ -89,7 +95,7 @@ export const realtimeService = {
           table: 'tasks'
         },
         async (payload) => {
-          console.log('Task deleted:', payload);
+          console.log('Task deleted event received:', payload);
           if (!payload.old || typeof payload.old.id !== 'string') {
             console.error('Invalid payload in DELETE event:', payload);
             return;
@@ -99,7 +105,10 @@ export const realtimeService = {
             console.log('Fetching tasks after DELETE event');
             const tasks = await taskService.fetchTasks();
             console.log(`Received ${tasks.length} tasks after DELETE`);
-            if (stateCallback) stateCallback(tasks);
+            if (stateCallback) {
+              console.log('Calling stateCallback with updated tasks after DELETE');
+              stateCallback(tasks);
+            }
           } catch (error) {
             console.error('Error fetching tasks after delete:', error);
           }
@@ -113,13 +122,16 @@ export const realtimeService = {
           table: 'status_history'
         },
         async (payload) => {
-          console.log('Status history change:', payload);
+          console.log('Status history change event received:', payload);
           
           try {
             console.log('Fetching tasks after status history change');
             const tasks = await taskService.fetchTasks();
             console.log(`Received ${tasks.length} tasks after status history change`);
-            if (stateCallback) stateCallback(tasks);
+            if (stateCallback) {
+              console.log('Calling stateCallback with updated tasks after status history change');
+              stateCallback(tasks);
+            }
           } catch (error) {
             console.error('Error fetching tasks after status history change:', error);
           }
@@ -127,6 +139,17 @@ export const realtimeService = {
       )
       .subscribe((status) => {
         console.log('Real-time subscription status:', status);
+        
+        // Fetch initial tasks when the subscription is established
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscription established, fetching initial tasks');
+          taskService.fetchTasks().then(tasks => {
+            console.log(`Initially fetched ${tasks.length} tasks`);
+            if (stateCallback) stateCallback(tasks);
+          }).catch(error => {
+            console.error('Error fetching initial tasks:', error);
+          });
+        }
       });
 
     return;

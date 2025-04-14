@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,7 @@ interface TaskCardProps {
 const TaskCard = ({ task }: TaskCardProps) => {
   const { deleteTask } = useTaskStore();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Function to determine priority badge color
   const getPriorityColor = (priority: string) => {
@@ -110,11 +112,17 @@ const TaskCard = ({ task }: TaskCardProps) => {
 
   const handleDelete = async () => {
     try {
+      setIsDeleting(true);
+      console.log(`Deleting task with ID: ${task.id}`);
       await deleteTask(task.id);
+      console.log(`Task ${task.id} deleted successfully`);
       toast.success('Task deleted successfully');
       setIsDeleteDialogOpen(false);
     } catch (error: any) {
+      console.error(`Failed to delete task ${task.id}:`, error);
       toast.error(`Failed to delete task: ${error.message}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -203,8 +211,9 @@ const TaskCard = ({ task }: TaskCardProps) => {
             <Button 
               variant="destructive" 
               onClick={handleDelete}
+              disabled={isDeleting}
             >
-              Delete Task
+              {isDeleting ? 'Deleting...' : 'Delete Task'}
             </Button>
           </DialogFooter>
         </DialogContent>

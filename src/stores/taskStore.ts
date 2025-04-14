@@ -50,6 +50,7 @@ const useTaskStore = create<TaskState>((set, get) => ({
   },
   
   removeTask: (taskId) => {
+    console.log(`Removing task ${taskId} from store`);
     const currentTasks = get().tasks;
     const updatedTasks = currentTasks.filter(task => task.id !== taskId);
     set({ tasks: updatedTasks });
@@ -62,48 +63,77 @@ const useTaskStore = create<TaskState>((set, get) => ({
       const tasks = await taskService.fetchTasks();
       console.log(`Fetched ${tasks.length} tasks in fetchTasks()`);
       set({ tasks, loading: false });
+      return tasks;
     } catch (error: any) {
       console.error('Error in fetchTasks:', error);
       set({ error: error.message, loading: false });
+      throw error;
     }
   },
 
   addTask: async (task) => {
     set({ loading: true, error: null });
     try {
-      await taskService.addTask(task);
-      console.log('Task added successfully');
-      set({ loading: false });
-      // We don't update the state here - the realtime subscription will handle it
+      const newTask = await taskService.addTask(task);
+      console.log('Task added successfully:', newTask);
+      
+      // Update the local state immediately for better UX
+      if (newTask) {
+        const currentTasks = get().tasks;
+        set({ tasks: [newTask, ...currentTasks], loading: false });
+      } else {
+        set({ loading: false });
+      }
     } catch (error: any) {
       console.error('Error in addTask:', error);
       set({ error: error.message, loading: false });
+      throw error;
     }
   },
 
   updateTask: async (taskId, updatedTask, userId) => {
     set({ loading: true, error: null });
     try {
-      await taskService.updateTask(taskId, updatedTask, userId);
-      console.log('Task updated successfully');
-      set({ loading: false });
-      // We don't update the state here - the realtime subscription will handle it
+      console.log(`Updating task ${taskId} with data:`, updatedTask);
+      const updated = await taskService.updateTask(taskId, updatedTask, userId);
+      console.log('Task updated successfully:', updated);
+      
+      // Update the local state immediately for better UX
+      if (updated) {
+        const currentTasks = get().tasks;
+        const taskIndex = currentTasks.findIndex(task => task.id === taskId);
+        
+        if (taskIndex >= 0) {
+          const updatedTasks = [...currentTasks];
+          updatedTasks[taskIndex] = updated;
+          set({ tasks: updatedTasks, loading: false });
+        } else {
+          set({ loading: false });
+        }
+      } else {
+        set({ loading: false });
+      }
     } catch (error: any) {
       console.error('Error in updateTask:', error);
       set({ error: error.message, loading: false });
+      throw error;
     }
   },
 
   deleteTask: async (taskId) => {
     set({ loading: true, error: null });
     try {
+      console.log(`Deleting task ${taskId}`);
       await taskService.deleteTask(taskId);
       console.log('Task deleted successfully');
+      
+      // Update the local state immediately for better UX
+      get().removeTask(taskId);
       set({ loading: false });
-      // We don't update the state here - the realtime subscription will handle it
     } catch (error: any) {
       console.error('Error in deleteTask:', error);
       set({ error: error.message, loading: false });
+      throw error;
     }
   },
 

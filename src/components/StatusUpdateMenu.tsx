@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -64,11 +65,13 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
     setIsSubmitting(true);
     
     try {
+      console.log(`Updating task ${taskId} status to ${selectedStatus}`);
       await updateTask(taskId, { 
         status: selectedStatus,
         remarks: remarks
       }, user.email || 'Unknown User');
       
+      console.log(`Task status updated to ${selectedStatus}`);
       toast.success(`Task status updated to ${selectedStatus}`);
       setOpen(false);
       setSelectedStatus("");
