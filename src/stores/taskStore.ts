@@ -16,7 +16,7 @@ interface TaskState {
   
   // API actions
   fetchTasks: () => Promise<Task[]>;
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'statusHistory'>) => Promise<void>;
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'statusHistory'>) => Promise<Task>;
   updateTask: (taskId: string, updatedTask: Partial<Task> & { remarks?: string }, userId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   getTaskById: (taskId: string) => Promise<Task | null>;
@@ -74,12 +74,19 @@ const useTaskStore = create<TaskState>((set, get) => ({
   addTask: async (task) => {
     set({ loading: true, error: null });
     try {
-      await taskService.addTask(task);
-      console.log('Task added successfully');
+      // Call the taskService to add the task and get the newly created task
+      const newTask = await taskService.addTask(task);
+      console.log('Task added successfully, adding to local state:', newTask);
       
-      // We'll let the realtime service handle the update, rather than
-      // duplicating the task addition locally
-      set({ loading: false });
+      // Update the local state immediately for better UX
+      if (newTask) {
+        const currentTasks = get().tasks;
+        set({ tasks: [newTask, ...currentTasks], loading: false });
+      } else {
+        set({ loading: false });
+      }
+      
+      return newTask;
     } catch (error: any) {
       console.error('Error in addTask:', error);
       set({ error: error.message, loading: false });

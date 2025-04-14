@@ -98,7 +98,7 @@ export const taskService = {
   /**
    * Adds a new task to the database
    */
-  addTask: async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'statusHistory'>): Promise<void> => {
+  addTask: async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'statusHistory'>): Promise<Task> => {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
@@ -134,6 +134,25 @@ export const taskService = {
       if (historyError) throw historyError;
 
       toast.success('Task created successfully');
+
+      // Return the newly created task with proper mapping
+      return mapDbTaskToTask(
+        {
+          ...data,
+          status: data.status as Status,
+          priority: data.priority as Priority
+        },
+        [{
+          id: 'initial',
+          task_id: data.id,
+          previous_status: data.status as Status,
+          new_status: data.status as Status,
+          user_id: session.user.id,
+          user_name: session.user.email,
+          remarks: 'Task created',
+          created_at: data.created_at
+        }]
+      );
     } catch (error: any) {
       console.error('Error adding task:', error);
       toast.error(`Failed to create task: ${error.message}`);

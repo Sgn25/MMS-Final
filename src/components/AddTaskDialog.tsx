@@ -49,7 +49,7 @@ const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
         assignedTo: assignedTo || 'Unassigned'
       });
       
-      toast.success('Task added successfully');
+      console.log('Task added to store successfully');
       
       resetForm();
       onOpenChange(false);
