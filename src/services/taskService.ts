@@ -133,6 +133,19 @@ export const taskService = {
 
       if (historyError) throw historyError;
 
+      // Send notification for new task
+      try {
+        await sendNotification({
+          taskId: data.id,
+          title: 'New Task Created',
+          body: `A new task "${data.title}" has been created`,
+          type: 'task_created'
+        });
+      } catch (notificationError) {
+        console.error('Failed to send notification:', notificationError);
+        // We don't throw here to avoid breaking the task creation flow
+      }
+
       toast.success('Task created successfully');
 
       // Return the newly created task with proper mapping
@@ -208,6 +221,21 @@ export const taskService = {
           });
 
         if (historyError) throw historyError;
+
+        // Send notification if status is changed to Closed
+        if (updatedTask.status === 'Closed') {
+          try {
+            await sendNotification({
+              taskId,
+              title: 'Task Closed',
+              body: `Task "${currentTask.title}" has been closed`,
+              type: 'task_closed'
+            });
+          } catch (notificationError) {
+            console.error('Failed to send notification:', notificationError);
+            // We don't throw here to avoid breaking the task update flow
+          }
+        }
       }
 
       toast.success('Task updated successfully');
@@ -249,5 +277,31 @@ export const taskService = {
       toast.error(`Failed to delete task: ${error.message}`);
       throw error;
     }
+  }
+};
+
+/**
+ * Send a notification through the Supabase edge function
+ */
+const sendNotification = async (payload: {
+  taskId: string;
+  title: string;
+  body: string;
+  type: 'task_created' | 'task_closed' | 'task_updated';
+}) => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+
+    const { data, error } = await supabase.functions.invoke('send-notification', {
+      body: payload
+    });
+
+    if (error) throw error;
+    console.log('Notification sent successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    throw error;
   }
 };

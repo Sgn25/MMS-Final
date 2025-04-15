@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +13,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { cleanupRealtimeSubscription } from "./stores/taskStore";
+import notificationService from "./services/notificationService";
+import { Capacitor } from '@capacitor/core';
 
 const App = () => {
   // Create a new QueryClient instance
@@ -36,6 +39,15 @@ const App = () => {
     return () => {
       cleanupRealtimeSubscription();
     };
+  }, []);
+
+  // Initialize push notifications if on native platform
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      notificationService.initialize().catch(error => {
+        console.error('Failed to initialize notifications:', error);
+      });
+    }
   }, []);
 
   return (
