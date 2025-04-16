@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import useTaskStore from '@/stores/taskStore';
@@ -16,6 +15,7 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { tasks, loading, error, fetchTasks } = useTaskStore();
   const [selectedStatus, setSelectedStatus] = useState<Status | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -27,11 +27,26 @@ const Dashboard = () => {
     // We don't need to put fetchTasks in the dependency array as it's a stable function reference
   }, []);
 
-  // Filter tasks based on selected status
+  // Filter tasks based on selected status and search query
   const filteredTasks = useMemo(() => {
-    if (selectedStatus === 'all') return tasks;
-    return tasks.filter(task => task.status === selectedStatus);
-  }, [tasks, selectedStatus]);
+    let filtered = tasks;
+    
+    // Apply status filter
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(task => task.status === selectedStatus);
+    }
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(task => 
+        task.title.toLowerCase().includes(query) || 
+        task.description.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [tasks, selectedStatus, searchQuery]);
 
   // Compute counts from the current state instead of using getState
   const pendingTasks = useMemo(() => 
@@ -129,6 +144,27 @@ const Dashboard = () => {
             <PlusCircle className="h-4 w-4" />
             Add New Task
           </Button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-milma-blue focus:border-transparent"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Status Summary Boxes */}
