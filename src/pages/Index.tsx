@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,7 +34,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-milma-teal/10 to-milma-blue/10 p-4">
       <div className="w-full max-w-5xl">
         <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-bold text-milma-blue mb-4">Milma Maintenance System</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-milma-blue mb-4">MainTMan</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Streamline your maintenance operations with our comprehensive management platform
           </p>

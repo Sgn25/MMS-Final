@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -54,7 +53,7 @@ const LoginPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-milma-teal/10 to-milma-blue/10">
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-milma-blue">Milma Maintenance</h1>
+          <h1 className="text-3xl font-bold text-milma-blue">MainTMan</h1>
           <p className="text-gray-600 mt-2">Maintenance Management System</p>
         </div>
         
