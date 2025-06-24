@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +32,7 @@ const TaskCard = ({ task }: TaskCardProps) => {
     'wyd.eng@malabarmilma.coop': 'Sarath DE',
     'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
     'wyd.tsengg@gmail.com': 'Dineesh AE',
-    'wyd.eng.mrcmpu@gmail.com': 'Akhil AE'
+    'wyd.eng.mrcmpu@gmail.com': 'Subin DE'
   };
 
   // Function to get name from email
@@ -77,20 +76,6 @@ const TaskCard = ({ task }: TaskCardProps) => {
         return 'border-l-green-500';
       default:
         return 'border-l-gray-300';
-    }
-  };
-
-  // Function to determine status background glow
-  const getStatusGlow = (status: string) => {
-    switch (status) {
-      case 'Pending':
-        return 'before:bg-red-500/10';
-      case 'In Progress':
-        return 'before:bg-amber-500/10';
-      case 'Closed':
-        return 'before:bg-green-500/10';
-      default:
-        return 'before:bg-gray-300/10';
     }
   };
 
@@ -147,25 +132,24 @@ const TaskCard = ({ task }: TaskCardProps) => {
           border-l-4 ${getStatusColor(task.status)} 
           hover:shadow-md transition-all duration-200 
           transform hover:-translate-y-1 
-          relative overflow-hidden 
-          before:content-[''] before:absolute before:inset-0 
-          before:opacity-30 ${getStatusGlow(task.status)} before:rounded-lg before:z-0
+          relative
+          ${task.status === 'Pending' ? 'animate-border-glow' : ''}
         `}
       >
         <CardContent className="p-4 relative z-10">
+          <div className="absolute top-4 right-4 flex flex-shrink-0 gap-2">
+            <Badge className={getStatusColor(task.status).replace('border-l-', 'bg-').replace('500', '100') + ' text-' + getStatusColor(task.status).replace('border-l-', '').replace('500', '700')}>
+              {task.status}
+            </Badge>
+            <Badge className={`shrink-0 whitespace-nowrap ${getPriorityColor(task.priority)}`}>
+              {task.priority}
+            </Badge>
+          </div>
           <div className="flex flex-col h-full">
-            <div className="flex justify-between items-start mb-2">
-              <Link to={`/task/${task.id}`} className="hover:underline flex-grow mr-2">
-                <h3 className="font-medium text-gray-900 truncate">{task.title}</h3>
+            <div className="pr-24 mb-2">
+              <Link to={`/task/${task.id}`} className="hover:underline">
+                <h3 className="font-medium text-gray-900">{task.title}</h3>
               </Link>
-              <div className="flex gap-2 items-center">
-                <Badge className={getStatusColor(task.status).replace('border-l-', 'bg-').replace('500', '100') + ' text-' + getStatusColor(task.status).replace('border-l-', '').replace('500', '700')}>
-                  {task.status}
-                </Badge>
-                <Badge className={`shrink-0 whitespace-nowrap ${getPriorityColor(task.priority)}`}>
-                  {task.priority}
-                </Badge>
-              </div>
             </div>
             
             <p className="text-sm text-gray-500 line-clamp-2 mb-3">{task.description}</p>

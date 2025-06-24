@@ -40,3 +40,29 @@
 .read-the-docs {
   color: #888;
 }
+
+@keyframes pending-overlay-pulse {
+  0% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0.1;
+  }
+}
+
+.pending-card-animated::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ef4444; /* red-500 */
+  border-radius: inherit;
+  animation: pending-overlay-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,7 +34,7 @@ const TaskDetail = () => {
     'wyd.eng@malabarmilma.coop': 'Sarath DE',
     'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
     'wyd.tsengg@gmail.com': 'Dineesh AE',
-    'wyd.eng.mrcmpu@gmail.com': 'Akhil AE'
+    'wyd.eng.mrcmpu@gmail.com': 'Subin DE'
   };
 
   // Function to get name from email

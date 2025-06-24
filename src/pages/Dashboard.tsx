@@ -72,7 +72,7 @@ const Dashboard = () => {
     'wyd.eng@malabarmilma.coop': 'Sarath DE',
     'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
     'wyd.tsengg@gmail.com': 'Dineesh AE',
-    'wyd.eng.mrcmpu@gmail.com': 'Akhil AE'
+    'wyd.eng.mrcmpu@gmail.com': 'Subin DE'
   }), []);
   
   // Get user name from email mapping or metadata or default to email username

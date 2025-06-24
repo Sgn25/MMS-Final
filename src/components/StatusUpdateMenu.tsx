@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -42,7 +41,7 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
     'wyd.eng@malabarmilma.coop': 'Sarath DE',
     'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
     'wyd.tsengg@gmail.com': 'Dineesh AE',
-    'wyd.eng.mrcmpu@gmail.com': 'Akhil AE'
+    'wyd.eng.mrcmpu@gmail.com': 'Subin DE'
   };
 
   // Function to get name from email
