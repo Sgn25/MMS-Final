@@ -5,17 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import TaskCard from '@/components/TaskCard';
 import AddTaskDialog from '@/components/AddTaskDialog';
+import DateRangeFilter from '@/components/DateRangeFilter';
 import { PlusCircle, LogOut, Clock, ArrowUpCircle, CheckCircle2, X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Status } from '@/types/task';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
+
+interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { tasks, loading, error, fetchTasks } = useTaskStore();
   const [selectedStatus, setSelectedStatus] = useState<Status | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -27,7 +35,7 @@ const Dashboard = () => {
     // We don't need to put fetchTasks in the dependency array as it's a stable function reference
   }, []);
 
-  // Filter tasks based on selected status and search query
+  // Filter tasks based on selected status, search query, and date range
   const filteredTasks = useMemo(() => {
     let filtered = tasks;
     
@@ -45,8 +53,31 @@ const Dashboard = () => {
       );
     }
     
+    // Apply date range filter
+    if (dateRange.from || dateRange.to) {
+      filtered = filtered.filter(task => {
+        const taskDate = parseISO(task.createdAt);
+        
+        if (dateRange.from && dateRange.to) {
+          // Both dates selected - filter within range
+          return isWithinInterval(taskDate, {
+            start: startOfDay(dateRange.from),
+            end: endOfDay(dateRange.to)
+          });
+        } else if (dateRange.from) {
+          // Only start date selected - filter from that date onwards
+          return taskDate >= startOfDay(dateRange.from);
+        } else if (dateRange.to) {
+          // Only end date selected - filter up to that date
+          return taskDate <= endOfDay(dateRange.to);
+        }
+        
+        return true;
+      });
+    }
+    
     return filtered;
-  }, [tasks, selectedStatus, searchQuery]);
+  }, [tasks, selectedStatus, searchQuery, dateRange]);
 
   // Compute counts from the current state instead of using getState
   const pendingTasks = useMemo(() => 
@@ -147,7 +178,7 @@ const Dashboard = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="relative">
             <input
               type="text"
@@ -164,6 +195,17 @@ const Dashboard = () => {
                 <X className="h-4 w-4" />
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Filter by creation date:</label>
+            <DateRangeFilter 
+              dateRange={dateRange}
+              onDateRangeChange={handleDateRangeChange}
+            />
           </div>
         </div>
 
@@ -218,20 +260,44 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Active filter indicator */}
-        {selectedStatus !== 'all' && (
-          <div className="mb-4 flex items-center">
-            <div className="bg-gray-100 py-1 px-3 rounded-full flex items-center gap-2">
-              <span className="text-sm">Filtering by: <span className="font-medium">{selectedStatus}</span></span>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => setSelectedStatus('all')}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+        {/* Active filter indicators */}
+        {(selectedStatus !== 'all' || dateRange.from || dateRange.to) && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {selectedStatus !== 'all' && (
+              <div className="bg-gray-100 py-1 px-3 rounded-full flex items-center gap-2">
+                <span className="text-sm">Status: <span className="font-medium">{selectedStatus}</span></span>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setSelectedStatus('all')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            {(dateRange.from || dateRange.to) && (
+              <div className="bg-gray-100 py-1 px-3 rounded-full flex items-center gap-2">
+                <span className="text-sm">
+                  Date: <span className="font-medium">
+                    {dateRange.from && dateRange.to 
+                      ? `${dateRange.from.toLocaleDateString()} - ${dateRange.to.toLocaleDateString()}`
+                      : dateRange.from 
+                        ? `From ${dateRange.from.toLocaleDateString()}`
+                        : `Until ${dateRange.to?.toLocaleDateString()}`
+                    }
+                  </span>
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setDateRange({ from: undefined, to: undefined })}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -239,6 +305,11 @@ const Dashboard = () => {
         <div className="mt-8">
           <h3 className="text-lg font-medium mb-4">
             {selectedStatus !== 'all' ? `${selectedStatus} Tasks` : 'All Tasks'}
+            {filteredTasks.length !== tasks.length && (
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                ({filteredTasks.length} of {tasks.length})
+              </span>
+            )}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {loading ? (
