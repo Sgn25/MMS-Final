@@ -77,14 +77,15 @@ const saveTokenToSupabase = async (token: string) => {
       return;
     }
     
-    // Create a tokens table if it doesn't exist already
+    // Use the device_tokens table that we just created
     const { error } = await supabase
       .from('device_tokens')
       .upsert({
         user_id: session.user.id,
         token: token,
         device_type: 'android',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }, {
         onConflict: 'user_id,token'
       });
