@@ -35,6 +35,11 @@ const Dashboard = () => {
     // We don't need to put fetchTasks in the dependency array as it's a stable function reference
   }, []);
 
+  // Handle date range change
+  const handleDateRangeChange = (newDateRange: DateRange) => {
+    setDateRange(newDateRange);
+  };
+
   // Filter tasks based on selected status, search query, and date range
   const filteredTasks = useMemo(() => {
     let filtered = tasks;
