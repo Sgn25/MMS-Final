@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -96,14 +97,14 @@ export default {
 					}
 				},
 				'border-glow': {
-					'0%, 100%': { 'box-shadow': '0 0 5px 2px rgba(239, 68, 68, 0.4)' },
-					'50%': { 'box-shadow': '0 0 10px 4px rgba(239, 68, 68, 0.8)' },
+					'0%, 100%': { 'box-shadow': '0 0 3px 1px rgba(239, 68, 68, 0.2)' },
+					'50%': { 'box-shadow': '0 0 6px 2px rgba(239, 68, 68, 0.4)' },
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'border-glow': 'border-glow 15s ease-in-out infinite',
+				'border-glow': 'border-glow 3s ease-in-out infinite',
 			}
 		}
 	},
