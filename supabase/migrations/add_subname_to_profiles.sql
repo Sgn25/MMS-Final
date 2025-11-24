@@ -10,12 +10,12 @@ WHERE id IN (SELECT id FROM auth.users WHERE email = 'wyd.eng@malabarmilma.coop'
 
 -- Subin
 UPDATE public.profiles
-SET name = 'Subin', subname = 'Engineer'
+SET name = 'Subin DE', subname = 'Engineer'
 WHERE id IN (SELECT id FROM auth.users WHERE email = 'wyd.de1.mrcmpu@gmail.com');
 
 -- Febin
 UPDATE public.profiles
-SET name = 'Febin', subname = 'Trainee'
+SET name = 'Febin MT', subname = 'Trainee'
 WHERE id IN (SELECT id FROM auth.users WHERE email = 'wyd.de.mrcmpu@gmail.com');
 
 -- Dineesh
