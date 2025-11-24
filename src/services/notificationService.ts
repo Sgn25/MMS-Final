@@ -3,6 +3,9 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
 
+// Store token in memory in case we need to save it after login
+let cachedToken: string | null = null;
+
 export const notificationService = {
   /**
    * Initialize push notifications
@@ -16,12 +19,12 @@ export const notificationService = {
     try {
       // Request permission
       const permissionStatus = await PushNotifications.requestPermissions();
-      
+
       if (permissionStatus.receive === 'granted') {
         // Register with FCM
         await PushNotifications.register();
         console.log('Push notification registration successful');
-        
+
         // Set up listeners
         setupNotificationListeners();
       } else {
@@ -30,6 +33,23 @@ export const notificationService = {
       }
     } catch (error) {
       console.error('Error initializing push notifications:', error);
+    }
+  },
+
+  /**
+   * Manually trigger saving the token (e.g. after login)
+   */
+  registerTokenAfterLogin: async () => {
+    if (cachedToken) {
+      console.log('Saving cached token after login...');
+      await saveTokenToSupabase(cachedToken);
+    } else {
+      // If no cached token, try to get it again or just wait for listener
+      // We can't easily "get" the current token from Capacitor without re-registering
+      // But re-registering is safe
+      if (Capacitor.isNativePlatform()) {
+        await PushNotifications.register();
+      }
     }
   }
 };
@@ -41,6 +61,7 @@ const setupNotificationListeners = () => {
   // On registration success
   PushNotifications.addListener('registration', token => {
     console.log('Push notification token:', token.value);
+    cachedToken = token.value;
     // We'll need to send this token to our backend
     saveTokenToSupabase(token.value);
   });
@@ -54,6 +75,7 @@ const setupNotificationListeners = () => {
   // On notification received
   PushNotifications.addListener('pushNotificationReceived', notification => {
     console.log('Push notification received:', notification);
+    // Only show toast if app is in foreground
     toast.info(`${notification.title}: ${notification.body}`);
   });
 
@@ -71,12 +93,12 @@ const saveTokenToSupabase = async (token: string) => {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session || !session.user) {
-      console.error('No authenticated user found');
+      console.log('No authenticated user found, token cached for later');
       return;
     }
-    
+
     // Use the device_tokens table that we just created
     const { error } = await supabase
       .from('device_tokens')
@@ -89,7 +111,7 @@ const saveTokenToSupabase = async (token: string) => {
       }, {
         onConflict: 'user_id,token'
       });
-    
+
     if (error) {
       console.error('Error saving token to Supabase:', error);
     } else {

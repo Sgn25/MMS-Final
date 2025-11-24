@@ -1,10 +1,52 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { serviceAccount } from "./service-account.ts"
+import { SignJWT, importPKCS8 } from "https://esm.sh/jose@4.14.4"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// Helper to get access token
+async function getAccessToken({ client_email, private_key }: { client_email: string, private_key: string }) {
+  try {
+    const alg = 'RS256'
+    const pkcs8 = private_key.replace(/\\n/g, '\n')
+    const privateKey = await importPKCS8(pkcs8, alg)
+
+    const jwt = await new SignJWT({
+      iss: client_email,
+      sub: client_email,
+      aud: "https://oauth2.googleapis.com/token",
+      scope: 'https://www.googleapis.com/auth/firebase.messaging'
+    })
+      .setProtectedHeader({ alg, typ: 'JWT' })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .setIssuer(client_email)
+      .setSubject(client_email)
+      .setAudience("https://oauth2.googleapis.com/token")
+      .sign(privateKey)
+
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: jwt,
+      }),
+    })
+
+    const data = await response.json()
+    return data.access_token
+  } catch (err) {
+    console.error("Error getting access token:", err)
+    throw err
+  }
 }
 
 serve(async (req) => {
@@ -25,33 +67,16 @@ serve(async (req) => {
       }
     )
 
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('No authorization header')
-    }
-
-    // Get the current session to check if the user is authenticated
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession()
-
-    if (!session) {
-      throw new Error('Not authenticated')
-    }
-
     // Parse the request body
     const { taskId, title, body, type } = await req.json()
 
-    if (!taskId || !title || !body || !type) {
+    if (!title || !body) {
       throw new Error('Missing required fields')
     }
 
-    // Log the notification information
-    console.log(`Sending notification for task ${taskId}: ${title} - ${body}`)
+    console.log(`Processing notification: ${title}`)
 
     // Get all users who have registered for notifications
-    // In a real app, you might want to filter by user role or task assignment
     const { data: deviceTokens, error: tokensError } = await supabaseClient
       .from('device_tokens')
       .select('token')
@@ -61,33 +86,66 @@ serve(async (req) => {
     }
 
     if (!deviceTokens || deviceTokens.length === 0) {
-      return new Response(JSON.stringify({ 
-        message: 'No registered devices found' 
+      return new Response(JSON.stringify({
+        message: 'No registered devices found'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       })
     }
 
-    console.log(`Found ${deviceTokens.length} registered devices`)
+    // Get Access Token
+    const accessToken = await getAccessToken(serviceAccount)
+    if (!accessToken) {
+      throw new Error('Failed to generate access token')
+    }
 
-    // Extract all tokens
-    const tokens = deviceTokens.map(device => device.token)
+    // Send notifications
+    const projectId = serviceAccount.project_id
+    const results = []
 
-    // This could be a call to Firebase FCM API in a production setup
-    // For now, we'll just log that we would send notifications
-    console.log(`Would send notification to ${tokens.length} devices`)
-    console.log('Tokens:', tokens)
-    console.log('Title:', title)
-    console.log('Body:', body)
+    for (const device of deviceTokens) {
+      const token = device.token
+      try {
+        const response = await fetch(
+          `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: {
+                token: token,
+                notification: {
+                  title: title,
+                  body: body,
+                },
+                data: {
+                  taskId: taskId ? String(taskId) : '',
+                  type: type || 'INFO',
+                },
+              },
+            }),
+          }
+        )
 
-    // In a complete implementation, you would:
-    // 1. Call the Firebase FCM HTTP v1 API to send notifications
-    // 2. Handle any errors from the FCM API
-    // 3. Log the results
+        const result = await response.json()
+        results.push({ token, result })
 
-    return new Response(JSON.stringify({ 
-      message: 'Notifications would be sent (FCM implementation required)' 
+        if (!response.ok) {
+          console.error(`Failed to send to ${token}:`, result)
+        }
+      } catch (sendError) {
+        console.error(`Error sending to ${token}:`, sendError)
+        results.push({ token, error: sendError.message })
+      }
+    }
+
+    return new Response(JSON.stringify({
+      message: 'Notifications processed',
+      results
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

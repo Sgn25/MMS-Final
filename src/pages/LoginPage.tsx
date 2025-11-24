@@ -24,9 +24,13 @@ const LoginPage = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       await signIn(email, password);
+      // Try to register token now that user is logged in
+      import('../services/notificationService').then(({ default: ns }) => {
+        ns.registerTokenAfterLogin();
+      });
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
@@ -38,7 +42,7 @@ const LoginPage = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       await signUp(email, password, name);
       // Note: We don't navigate here because the user needs to verify their email first
@@ -56,7 +60,7 @@ const LoginPage = () => {
           <h1 className="text-3xl font-bold text-milma-blue">MainTMan</h1>
           <p className="text-gray-600 mt-2">Maintenance Management System</p>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Welcome</CardTitle>
@@ -64,13 +68,13 @@ const LoginPage = () => {
               Sign in to your account or create a new one
             </CardDescription>
           </CardHeader>
-          
+
           <Tabs defaultValue="signin">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="signin">
               <form onSubmit={handleSignIn}>
                 <CardContent className="space-y-4 pt-4">
@@ -98,8 +102,8 @@ const LoginPage = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-milma-blue hover:bg-milma-blue/90"
                     disabled={isLoading}
                   >
@@ -108,7 +112,7 @@ const LoginPage = () => {
                 </CardFooter>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup">
               <form onSubmit={handleSignUp}>
                 <CardContent className="space-y-4 pt-4">
@@ -147,8 +151,8 @@ const LoginPage = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-milma-blue hover:bg-milma-blue/90"
                     disabled={isLoading}
                   >
@@ -159,7 +163,7 @@ const LoginPage = () => {
             </TabsContent>
           </Tabs>
         </Card>
-        
+
         <div className="text-center mt-6 text-sm text-gray-500">
           <p>For testing, we recommend disabling email verification in the Supabase dashboard.</p>
         </div>

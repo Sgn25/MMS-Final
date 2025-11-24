@@ -1,0 +1,29 @@
+{
+    "project_info": {
+        "project_number": "593909043553",
+        "project_id": "maintmaininop",
+        "storage_bucket": "maintmaininop.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:593909043553:android:1db36a958786ea197fb520",
+                "android_client_info": {
+                    "package_name": "com.example.maintmaninop"
+                }
+            },
+            "oauth_client": [],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyD9IuOspodtiGMj9Z538p54h9SP8q0X0NY"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": []
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}
