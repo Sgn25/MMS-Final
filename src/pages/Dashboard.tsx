@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import TaskCard from '@/components/TaskCard';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import DateRangeFilter from '@/components/DateRangeFilter';
-import { PlusCircle, LogOut, Clock, ArrowUpCircle, CheckCircle2, X } from 'lucide-react';
+import { PlusCircle, LogOut, Clock, ArrowUpCircle, CheckCircle2, X, RefreshCw } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Status } from '@/types/task';
 import { toast } from 'sonner';
@@ -21,13 +21,14 @@ interface DateRange {
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { tasks, loading, error, fetchTasks } = useTaskStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Status | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  
+
   // Fetch tasks on initial load
   useEffect(() => {
     console.log('Dashboard mounted, fetching tasks');
@@ -43,26 +44,26 @@ const Dashboard = () => {
   // Filter tasks based on selected status, search query, and date range
   const filteredTasks = useMemo(() => {
     let filtered = tasks;
-    
+
     // Apply status filter
     if (selectedStatus !== 'all') {
       filtered = filtered.filter(task => task.status === selectedStatus);
     }
-    
+
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(task => 
-        task.title.toLowerCase().includes(query) || 
+      filtered = filtered.filter(task =>
+        task.title.toLowerCase().includes(query) ||
         task.description.toLowerCase().includes(query)
       );
     }
-    
+
     // Apply date range filter
     if (dateRange.from || dateRange.to) {
       filtered = filtered.filter(task => {
         const taskDate = parseISO(task.createdAt);
-        
+
         if (dateRange.from && dateRange.to) {
           // Both dates selected - filter within range
           return isWithinInterval(taskDate, {
@@ -76,33 +77,33 @@ const Dashboard = () => {
           // Only end date selected - filter up to that date
           return taskDate <= endOfDay(dateRange.to);
         }
-        
+
         return true;
       });
     }
-    
+
     return filtered;
   }, [tasks, selectedStatus, searchQuery, dateRange]);
 
   // Compute counts from the current state instead of using getState
-  const pendingTasks = useMemo(() => 
-    tasks.filter(task => task.status === 'Pending'), 
+  const pendingTasks = useMemo(() =>
+    tasks.filter(task => task.status === 'Pending'),
     [tasks]
   );
-  
-  const inProgressTasks = useMemo(() => 
-    tasks.filter(task => task.status === 'In Progress'), 
+
+  const inProgressTasks = useMemo(() =>
+    tasks.filter(task => task.status === 'In Progress'),
     [tasks]
   );
-  
-  const closedTasks = useMemo(() => 
-    tasks.filter(task => task.status === 'Closed'), 
+
+  const closedTasks = useMemo(() =>
+    tasks.filter(task => task.status === 'Closed'),
     [tasks]
   );
 
   // Extract user display information safely
   const userEmail = user?.email || '';
-  
+
   // Map specific emails to names
   const emailToNameMap = useMemo(() => ({
     'wyd.eng@malabarmilma.coop': 'Sarath DE',
@@ -110,12 +111,12 @@ const Dashboard = () => {
     'wyd.tsengg@gmail.com': 'Dineesh AE',
     'wyd.eng.mrcmpu@gmail.com': 'Subin DE'
   }), []);
-  
+
   // Get user name from email mapping or metadata or default to email username
-  const userName = emailToNameMap[userEmail] || 
-                  user?.user_metadata?.name || 
-                  userEmail.split('@')[0] || 
-                  '';
+  const userName = emailToNameMap[userEmail] ||
+    user?.user_metadata?.name ||
+    userEmail.split('@')[0] ||
+    '';
 
   // Handle clicking on a status box to filter tasks
   const handleStatusFilterClick = (status: Status) => {
@@ -137,6 +138,20 @@ const Dashboard = () => {
     }
   };
 
+  // Handle refresh with loading state
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchTasks();
+      toast.success('Tasks refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing tasks:', error);
+      toast.error('Failed to refresh tasks');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Log when tasks change for debugging purposes
   useEffect(() => {
     console.log('Tasks updated in Dashboard, count:', tasks.length);
@@ -151,14 +166,24 @@ const Dashboard = () => {
             <h1 className="text-2xl font-bold text-milma-blue">MainTMan</h1>
             <p className="text-sm text-gray-500">Maintenance Management System</p>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             <div className="text-right">
               <p className="text-sm font-medium">{userName}</p>
               <p className="text-xs text-gray-500">Maintenance Manager</p>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
+              className="flex items-center gap-1"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {!isMobile && "Refresh"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleSignOut}
               className="flex items-center gap-1"
             >
@@ -173,7 +198,7 @@ const Dashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <h2 className="text-xl font-semibold">Task Dashboard</h2>
-          <Button 
+          <Button
             onClick={() => setIsAddTaskDialogOpen(true)}
             className="bg-milma-blue hover:bg-milma-blue/90 text-white flex items-center gap-1 w-full sm:w-auto"
           >
@@ -207,7 +232,7 @@ const Dashboard = () => {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <label className="text-sm font-medium text-gray-700">Filter by creation date:</label>
-            <DateRangeFilter 
+            <DateRangeFilter
               dateRange={dateRange}
               onDateRangeChange={handleDateRangeChange}
             />
@@ -217,7 +242,7 @@ const Dashboard = () => {
         {/* Status Summary Boxes */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
           {/* Pending Box */}
-          <Card 
+          <Card
             className={`bg-red-100 border-red-500 border cursor-pointer ${selectedStatus === 'Pending' ? 'ring-2 ring-red-500' : ''}`}
             onClick={() => handleStatusFilterClick('Pending')}
           >
@@ -233,7 +258,7 @@ const Dashboard = () => {
           </Card>
 
           {/* In Progress Box */}
-          <Card 
+          <Card
             className={`bg-amber-100 border-amber-500 border cursor-pointer ${selectedStatus === 'In Progress' ? 'ring-2 ring-amber-500' : ''}`}
             onClick={() => handleStatusFilterClick('In Progress')}
           >
@@ -249,7 +274,7 @@ const Dashboard = () => {
           </Card>
 
           {/* Closed Box */}
-          <Card 
+          <Card
             className={`bg-green-100 border-green-500 border cursor-pointer ${selectedStatus === 'Closed' ? 'ring-2 ring-green-500' : ''}`}
             onClick={() => handleStatusFilterClick('Closed')}
           >
@@ -271,8 +296,8 @@ const Dashboard = () => {
             {selectedStatus !== 'all' && (
               <div className="bg-gray-100 py-1 px-3 rounded-full flex items-center gap-2">
                 <span className="text-sm">Status: <span className="font-medium">{selectedStatus}</span></span>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="h-6 w-6"
                   onClick={() => setSelectedStatus('all')}
@@ -285,16 +310,16 @@ const Dashboard = () => {
               <div className="bg-gray-100 py-1 px-3 rounded-full flex items-center gap-2">
                 <span className="text-sm">
                   Date: <span className="font-medium">
-                    {dateRange.from && dateRange.to 
+                    {dateRange.from && dateRange.to
                       ? `${dateRange.from.toLocaleDateString()} - ${dateRange.to.toLocaleDateString()}`
-                      : dateRange.from 
+                      : dateRange.from
                         ? `From ${dateRange.from.toLocaleDateString()}`
                         : `Until ${dateRange.to?.toLocaleDateString()}`
                     }
                   </span>
                 </span>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="h-6 w-6"
                   onClick={() => setDateRange({ from: undefined, to: undefined })}

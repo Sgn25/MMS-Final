@@ -56,15 +56,11 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with the Auth context
+    // Create a Supabase client with service role key to bypass RLS
+    // This allows automated notifications (from cron jobs) to access all device tokens
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
     // Parse the request body
@@ -136,6 +132,22 @@ serve(async (req) => {
 
         if (!response.ok) {
           console.error(`Failed to send to ${token}:`, result)
+
+          // Check if the error is UNREGISTERED (invalid/expired token)
+          if (result.error?.details?.some((d: any) => d.errorCode === 'UNREGISTERED')) {
+            console.log(`Deleting unregistered token: ${token}`)
+            // Delete the invalid token from database
+            const { error: deleteError } = await supabaseClient
+              .from('device_tokens')
+              .delete()
+              .eq('token', token)
+
+            if (deleteError) {
+              console.error(`Failed to delete unregistered token:`, deleteError)
+            } else {
+              console.log(`Successfully deleted unregistered token`)
+            }
+          }
         }
       } catch (sendError) {
         console.error(`Error sending to ${token}:`, sendError)

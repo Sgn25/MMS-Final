@@ -82,7 +82,24 @@ const setupNotificationListeners = () => {
   // On notification clicked
   PushNotifications.addListener('pushNotificationActionPerformed', action => {
     console.log('Push notification action performed:', action);
-    // Handle navigation if needed based on the notification
+
+    // Extract taskId from notification data
+    const taskId = action.notification.data?.taskId;
+
+    if (taskId) {
+      console.log('Navigating to task detail:', taskId);
+
+      // Use window.location to navigate (works reliably in Capacitor apps)
+      // This ensures navigation works even when app is opened from background
+      window.location.href = `#/task/${taskId}`;
+
+      // Alternative: If you need to use React Router's navigate, do it like this:
+      // setTimeout(() => {
+      //   window.dispatchEvent(new CustomEvent('navigate-to-task', { detail: { taskId } }));
+      // }, 100);
+    } else {
+      console.log('No taskId in notification, opening app normally');
+    }
   });
 };
 
