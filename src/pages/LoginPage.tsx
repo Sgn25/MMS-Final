@@ -210,10 +210,6 @@ const LoginPage = () => {
             </TabsContent>
           </Tabs>
         </Card>
-
-        <div className="text-center mt-6 text-sm text-gray-500">
-          <p>For testing, we recommend disabling email verification in the Supabase dashboard.</p>
-        </div>
       </div>
     </div>
   );
