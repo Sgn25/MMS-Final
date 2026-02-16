@@ -6,12 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import TaskCard from '@/components/TaskCard';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import DateRangeFilter from '@/components/DateRangeFilter';
-import { PlusCircle, LogOut, Clock, ArrowUpCircle, CheckCircle2, X, RefreshCw } from 'lucide-react';
+import { PlusCircle, LogOut, Clock, ArrowUpCircle, CheckCircle2, X, RefreshCw, User as UserIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Status } from '@/types/task';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DateRange {
   from: Date | undefined;
@@ -26,15 +27,41 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ name: string, designation: string, unit_name: string } | null>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
-  // Fetch tasks on initial load
+  // Fetch tasks and user profile on initial load
   useEffect(() => {
-    console.log('Dashboard mounted, fetching tasks');
+    console.log('Dashboard mounted, fetching tasks and profile');
     fetchTasks();
-    // We don't need to put fetchTasks in the dependency array as it's a stable function reference
-  }, []);
+
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      const { data, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          name, 
+          designation, 
+          units (name)
+        `)
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+      } else if (data) {
+        setUserProfile({
+          name: data.name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+          designation: data.designation || 'Maintenance Personnel',
+          unit_name: (data.units as any)?.name || 'Unknown Unit'
+        });
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   // Handle date range change
   const handleDateRangeChange = (newDateRange: DateRange) => {
@@ -101,23 +128,6 @@ const Dashboard = () => {
     [tasks]
   );
 
-  // Extract user display information safely
-  const userEmail = user?.email || '';
-
-  // Map specific emails to names
-  const emailToNameMap = useMemo(() => ({
-    'wyd.eng@malabarmilma.coop': 'Sarath DE',
-    'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
-    'wyd.tsengg@gmail.com': 'Dineesh AE',
-    'wyd.eng.mrcmpu@gmail.com': 'Subin DE'
-  }), []);
-
-  // Get user name from email mapping or metadata or default to email username
-  const userName = emailToNameMap[userEmail] ||
-    user?.user_metadata?.name ||
-    userEmail.split('@')[0] ||
-    '';
-
   // Handle clicking on a status box to filter tasks
   const handleStatusFilterClick = (status: Status) => {
     if (selectedStatus === status) {
@@ -164,13 +174,24 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-milma-blue">MainTMan</h1>
-            <p className="text-sm text-gray-500">Maintenance Management System</p>
+            <p className="text-xs font-semibold text-milma-blue/70 px-2 py-0.5 bg-milma-blue/5 rounded inline-block">
+              {userProfile?.unit_name || "Loading Unit..."}
+            </p>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="text-right">
-              <p className="text-sm font-medium">{userName}</p>
-              <p className="text-xs text-gray-500">Maintenance Manager</p>
+            <div className="text-right mr-2 hidden sm:block">
+              <p className="text-sm font-medium">{userProfile?.name || "User"}</p>
+              <p className="text-xs text-gray-500">{userProfile?.designation || "Maintenance"}</p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-1"
+            >
+              <UserIcon className="h-4 w-4" />
+              {!isMobile && "Profile"}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -185,7 +206,7 @@ const Dashboard = () => {
               variant="outline"
               size="sm"
               onClick={handleSignOut}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700 hover:border-red-200"
             >
               <LogOut className="h-4 w-4" />
               {!isMobile && "Sign Out"}

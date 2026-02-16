@@ -20,114 +20,116 @@ serve(async (req) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
         )
 
-        console.log('Fetching daily task summary...')
+        console.log('Fetching units for daily task summary...')
+        const { data: units, error: unitsError } = await supabaseClient
+            .from('units')
+            .select('id, name')
 
-        // Query pending tasks
-        const { data: pendingTasks, error: pendingError } = await supabaseClient
-            .from('tasks')
-            .select('id, title')
-            .eq('status', 'Pending')
-            .order('created_at', { ascending: true })
-
-        if (pendingError) {
-            throw new Error(`Error fetching pending tasks: ${pendingError.message}`)
-        }
-
-        // Query in-progress tasks
-        const { data: inProgressTasks, error: inProgressError } = await supabaseClient
-            .from('tasks')
-            .select('id, title')
-            .eq('status', 'In Progress')
-            .order('created_at', { ascending: true })
-
-        if (inProgressError) {
-            throw new Error(`Error fetching in-progress tasks: ${inProgressError.message}`)
-        }
-
-        console.log(`Found ${pendingTasks?.length || 0} pending and ${inProgressTasks?.length || 0} in-progress tasks`)
-
-        // Prepare notification data
-        const notifications = []
-
-        // Notification 1: Pending tasks
-        if (pendingTasks && pendingTasks.length > 0) {
-            const pendingCount = pendingTasks.length
-            const taskWord = pendingCount === 1 ? 'task' : 'tasks'
-            const verbForm = pendingCount === 1 ? 'is' : 'are'
-            const taskList = pendingTasks.map((task, index) => `${index + 1}. ${task.title}`).join('\n')
-
-            notifications.push({
-                title: `Total ${pendingCount} ${taskWord} ${verbForm} Pending`,
-                body: taskList,
-                type: 'PENDING_SUMMARY'
+        if (unitsError) throw unitsError
+        if (!units || units.length === 0) {
+            return new Response(JSON.stringify({ message: 'No units found' }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
             })
         }
 
-        // Notification 2: In Progress tasks
-        if (inProgressTasks && inProgressTasks.length > 0) {
-            const inProgressCount = inProgressTasks.length
-            const taskWord = inProgressCount === 1 ? 'task' : 'tasks'
-            const verbForm = inProgressCount === 1 ? 'is' : 'are'
-            const taskList = inProgressTasks.map((task, index) => `${index + 1}. ${task.title}`).join('\n')
+        const overallResults = []
 
-            notifications.push({
-                title: `Total ${inProgressCount} ${taskWord} ${verbForm} In Progress`,
-                body: taskList,
-                type: 'IN_PROGRESS_SUMMARY'
-            })
-        }
+        for (const unit of units) {
+            console.log(`Processing summary for unit: ${unit.name} (${unit.id})`)
 
-        // Send notifications if there are any
-        if (notifications.length > 0) {
-            const sendNotificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`
-            const results = []
+            // Query pending tasks for this unit
+            const { data: pendingTasks, error: pendingError } = await supabaseClient
+                .from('tasks')
+                .select('id, title')
+                .eq('status', 'Pending')
+                .eq('unit_id', unit.id)
+                .order('created_at', { ascending: true })
 
-            for (const notification of notifications) {
-                try {
-                    const response = await fetch(sendNotificationUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(notification),
-                    })
-
-                    const result = await response.json()
-                    results.push({ notification: notification.title, result })
-
-                    if (!response.ok) {
-                        console.error(`Failed to send notification: ${notification.title}`, result)
-                    } else {
-                        console.log(`Successfully sent notification: ${notification.title}`)
-                    }
-                } catch (sendError) {
-                    console.error(`Error sending notification: ${notification.title}`, sendError)
-                    results.push({ notification: notification.title, error: sendError.message })
-                }
+            if (pendingError) {
+                console.error(`Error fetching pending tasks for unit ${unit.name}:`, pendingError)
+                continue
             }
 
-            return new Response(JSON.stringify({
-                message: 'Daily task summary processed',
-                pendingCount: pendingTasks?.length || 0,
-                inProgressCount: inProgressTasks?.length || 0,
-                notificationsSent: notifications.length,
-                results
-            }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200,
-            })
-        } else {
-            return new Response(JSON.stringify({
-                message: 'No tasks to report',
-                pendingCount: 0,
-                inProgressCount: 0,
-                notificationsSent: 0
-            }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200,
-            })
+            // Query in-progress tasks for this unit
+            const { data: inProgressTasks, error: inProgressError } = await supabaseClient
+                .from('tasks')
+                .select('id, title')
+                .eq('status', 'In Progress')
+                .eq('unit_id', unit.id)
+                .order('created_at', { ascending: true })
+
+            if (inProgressError) {
+                console.error(`Error fetching in-progress tasks for unit ${unit.name}:`, inProgressError)
+                continue
+            }
+
+            // Prepare notification data
+            const notifications = []
+
+            // Notification 1: Pending tasks
+            if (pendingTasks && pendingTasks.length > 0) {
+                const pendingCount = pendingTasks.length
+                const taskWord = pendingCount === 1 ? 'task' : 'tasks'
+                const verbForm = pendingCount === 1 ? 'is' : 'are'
+                const taskList = pendingTasks.map((task, index) => `${index + 1}. ${task.title}`).join('\n')
+
+                notifications.push({
+                    title: `[${unit.name}] ${pendingCount} ${taskWord} Pending`,
+                    body: taskList,
+                    type: 'PENDING_SUMMARY',
+                    unitId: unit.id
+                })
+            }
+
+            // Notification 2: In Progress tasks
+            if (inProgressTasks && inProgressTasks.length > 0) {
+                const inProgressCount = inProgressTasks.length
+                const taskWord = inProgressCount === 1 ? 'task' : 'tasks'
+                const verbForm = inProgressCount === 1 ? 'is' : 'are'
+                const taskList = inProgressTasks.map((task, index) => `${index + 1}. ${task.title}`).join('\n')
+
+                notifications.push({
+                    title: `[${unit.name}] ${inProgressCount} ${taskWord} In Progress`,
+                    body: taskList,
+                    type: 'IN_PROGRESS_SUMMARY',
+                    unitId: unit.id
+                })
+            }
+
+            // Send notifications if there are any
+            if (notifications.length > 0) {
+                const sendNotificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`
+
+                for (const notification of notifications) {
+                    try {
+                        const response = await fetch(sendNotificationUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(notification),
+                        })
+
+                        const result = await response.json()
+                        overallResults.push({ unit: unit.name, notification: notification.title, result })
+                        console.log(`Sent notification for ${unit.name}: ${notification.title}`)
+                    } catch (sendError) {
+                        console.error(`Error sending notification for ${unit.name}:`, sendError)
+                        overallResults.push({ unit: unit.name, notification: notification.title, error: sendError.message })
+                    }
+                }
+            }
         }
+
+        return new Response(JSON.stringify({
+            message: 'Daily task summaries processed',
+            results: overallResults
+        }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+        })
 
     } catch (error) {
         console.error('Error in daily-task-summary function:', error)

@@ -14,10 +14,10 @@ const ExpoSecureStoreAdapter = {
     },
 };
 
-const SUPABASE_URL = "https://pjnsesvcgjtrspxhhrvn.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbnNlc3ZjZ2p0cnNweGhocnZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0MDA0MjAsImV4cCI6MjA1OTk3NjQyMH0.6k8ODpGYc7lJP-ntSYQ9CID6qpc2Cz4GFl_4pdGi8nE";
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient(SUPABASE_URL || "", SUPABASE_PUBLISHABLE_KEY || "", {
     auth: {
         storage: ExpoSecureStoreAdapter,
         autoRefreshToken: true,

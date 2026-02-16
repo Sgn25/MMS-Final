@@ -64,18 +64,24 @@ serve(async (req) => {
     )
 
     // Parse the request body
-    const { taskId, title, body, type } = await req.json()
+    const { taskId, title, body, type, unitId } = await req.json()
 
     if (!title || !body) {
       throw new Error('Missing required fields')
     }
 
-    console.log(`Processing notification: ${title}`)
+    console.log(`Processing notification for unit ${unitId || 'all'}: ${title}`)
 
-    // Get all users who have registered for notifications
-    const { data: deviceTokens, error: tokensError } = await supabaseClient
+    // Get all users who have registered for notifications in the specified unit
+    let query = supabaseClient
       .from('device_tokens')
       .select('token')
+
+    if (unitId) {
+      query = query.eq('unit_id', unitId)
+    }
+
+    const { data: deviceTokens, error: tokensError } = await query
 
     if (tokensError) {
       throw new Error(`Error fetching device tokens: ${tokensError.message}`)

@@ -36,6 +36,7 @@ BEGIN
       'taskId', NEW.id,
       'title', task_title,
       'body', task_body,
+      'unitId', NEW.unit_id,
       'data', row_to_json(NEW)
     );
   ELSIF (TG_OP = 'UPDATE') THEN
@@ -50,6 +51,7 @@ BEGIN
         'taskId', NEW.id,
         'title', task_title,
         'body', task_body,
+        'unitId', NEW.unit_id,
         'data', row_to_json(NEW)
       );
     ELSE
@@ -65,6 +67,7 @@ BEGIN
       'taskId', OLD.id,
       'title', task_title,
       'body', task_body,
+      'unitId', OLD.unit_id,
       'data', row_to_json(OLD)
     );
   END IF;

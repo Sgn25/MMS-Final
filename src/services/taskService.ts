@@ -36,7 +36,7 @@ export const taskService = {
             ...task,
             status: task.status as Status,
             priority: task.priority as Priority
-          }, 
+          },
           statusHistoryData.filter(history => history.task_id === task.id)
             .map(history => ({
               ...history,
@@ -81,7 +81,7 @@ export const taskService = {
           ...taskData,
           status: taskData.status as Status,
           priority: taskData.priority as Priority
-        }, 
+        },
         statusHistoryData.map(history => ({
           ...history,
           previous_status: history.previous_status as Status,
@@ -104,6 +104,16 @@ export const taskService = {
       if (sessionError) throw sessionError;
       if (!session) throw new Error('No active session');
 
+      // Fetch the user's unit_id from their profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('unit_id')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+      if (!profileData?.unit_id) throw new Error('User does not have an assigned unit');
+
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -112,7 +122,8 @@ export const taskService = {
           status: task.status,
           priority: task.priority,
           assigned_to: task.assignedTo,
-          user_id: session.user.id
+          user_id: session.user.id,
+          unit_id: profileData.unit_id
         })
         .select()
         .single();

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -6,14 +6,31 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [unitId, setUnitId] = useState('');
+  const [units, setUnits] = useState<{ id: string, name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUnits = async () => {
+      const { data, error } = await supabase.from('units').select('id, name');
+      if (error) {
+        console.error('Error fetching units:', error);
+      } else {
+        setUnits(data || []);
+      }
+    };
+    fetchUnits();
+  }, []);
 
   // If user is already logged in, redirect to dashboard
   if (user) {
@@ -41,10 +58,14 @@ const LoginPage = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!unitId) {
+      import('sonner').then(({ toast }) => toast.error('Please select a unit'));
+      return;
+    }
     setIsLoading(true);
 
     try {
-      await signUp(email, password, name);
+      await signUp(email, password, name, unitId, designation);
       // Note: We don't navigate here because the user needs to verify their email first
     } catch (error) {
       console.error('Signup error:', error);
@@ -58,7 +79,7 @@ const LoginPage = () => {
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-milma-blue">MainTMan</h1>
-          <p className="text-gray-600 mt-2">Maintenance Management System</p>
+          <p className="text-gray-600 mt-2">Maintenance Management System (Multi-Unit)</p>
         </div>
 
         <Card>
@@ -126,6 +147,32 @@ const LoginPage = () => {
                       onChange={(e) => setName(e.target.value)}
                       required
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="designation">Designation</Label>
+                    <Input
+                      id="designation"
+                      type="text"
+                      placeholder="Maintenance Manager"
+                      value={designation}
+                      onChange={(e) => setDesignation(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="unit">Select Unit</Label>
+                    <Select onValueChange={setUnitId} defaultValue={unitId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your dairy unit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {units.map((unit) => (
+                          <SelectItem key={unit.id} value={unit.id}>
+                            {unit.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
