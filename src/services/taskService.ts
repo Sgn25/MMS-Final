@@ -114,6 +114,17 @@ export const taskService = {
       if (profileError) throw profileError;
       if (!profileData?.unit_id) throw new Error('User does not have an assigned unit');
 
+      // Fetch the user's name and designation for status history
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('name, designation')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      const userName = session.user.user_metadata?.name || userData?.name || session.user.email || 'Unknown User';
+      const userDesignation = session.user.user_metadata?.designation || userData?.designation || '';
+      const fullDisplayName = userDesignation ? `${userName} (${userDesignation})` : userName;
+
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -138,7 +149,7 @@ export const taskService = {
           previous_status: task.status,
           new_status: task.status,
           user_id: session.user.id,
-          user_name: session.user.email || 'Unknown User',
+          user_name: fullDisplayName,
           remarks: 'Task created'
         });
 
@@ -172,7 +183,7 @@ export const taskService = {
           previous_status: data.status as Status,
           new_status: data.status as Status,
           user_id: session.user.id,
-          user_name: session.user.email || 'Unknown User',
+          user_name: fullDisplayName,
           remarks: 'Task created',
           created_at: data.created_at
         }]
@@ -203,23 +214,37 @@ export const taskService = {
       if (fetchError) throw fetchError;
       if (!currentTask) throw new Error('Task not found');
 
-      // Update the task
+      // Update the task - only include fields that are actually provided to avoid clearing data
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      };
+
+      if (updatedTask.title !== undefined) updateData.title = updatedTask.title;
+      if (updatedTask.description !== undefined) updateData.description = updatedTask.description;
+      if (updatedTask.status !== undefined) updateData.status = updatedTask.status;
+      if (updatedTask.priority !== undefined) updateData.priority = updatedTask.priority;
+      if (updatedTask.assignedTo !== undefined) updateData.assigned_to = updatedTask.assignedTo;
+
       const { error: updateError } = await supabase
         .from('tasks')
-        .update({
-          title: updatedTask.title,
-          description: updatedTask.description,
-          status: updatedTask.status,
-          priority: updatedTask.priority,
-          assigned_to: updatedTask.assignedTo,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', taskId);
 
       if (updateError) throw updateError;
 
       // If status is being updated, record the change in history
       if (updatedTask.status && updatedTask.status !== currentTask.status) {
+        // Fetch the user's name and designation for status history
+        const { data: userData } = await supabase
+          .from('profiles')
+          .select('name, designation')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        const userName = session.user.user_metadata?.name || userData?.name || session.user.email || 'Unknown User';
+        const userDesignation = session.user.user_metadata?.designation || userData?.designation || '';
+        const fullDisplayName = userDesignation ? `${userName} (${userDesignation})` : userName;
+
         const { error: historyError } = await supabase
           .from('status_history')
           .insert({
@@ -227,7 +252,7 @@ export const taskService = {
             previous_status: currentTask.status,
             new_status: updatedTask.status,
             user_id: session.user.id,
-            user_name: session.user.email,
+            user_name: fullDisplayName,
             remarks: updatedTask.remarks || 'No remarks provided'
           });
 

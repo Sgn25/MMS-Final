@@ -70,13 +70,11 @@ serve(async (req) => {
             // Notification 1: Pending tasks
             if (pendingTasks && pendingTasks.length > 0) {
                 const pendingCount = pendingTasks.length
-                const taskWord = pendingCount === 1 ? 'task' : 'tasks'
-                const verbForm = pendingCount === 1 ? 'is' : 'are'
                 const taskList = pendingTasks.map((task, index) => `${index + 1}. ${task.title}`).join('\n')
 
                 notifications.push({
-                    title: `[${unit.name}] ${pendingCount} ${taskWord} Pending`,
-                    body: taskList,
+                    title: `[${unit.name}] Task Summary`,
+                    body: `Total ${pendingCount} is pending\n${taskList}`,
                     type: 'PENDING_SUMMARY',
                     unitId: unit.id
                 })
@@ -85,13 +83,11 @@ serve(async (req) => {
             // Notification 2: In Progress tasks
             if (inProgressTasks && inProgressTasks.length > 0) {
                 const inProgressCount = inProgressTasks.length
-                const taskWord = inProgressCount === 1 ? 'task' : 'tasks'
-                const verbForm = inProgressCount === 1 ? 'is' : 'are'
                 const taskList = inProgressTasks.map((task, index) => `${index + 1}. ${task.title}`).join('\n')
 
                 notifications.push({
-                    title: `[${unit.name}] ${inProgressCount} ${taskWord} In Progress`,
-                    body: taskList,
+                    title: `[${unit.name}] Task Summary`,
+                    body: `Total ${inProgressCount} is in progress\n${taskList}`,
                     type: 'IN_PROGRESS_SUMMARY',
                     unitId: unit.id
                 })

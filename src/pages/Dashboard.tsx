@@ -51,13 +51,18 @@ const Dashboard = () => {
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
-      } else if (data) {
-        setUserProfile({
-          name: data.name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-          designation: data.designation || 'Maintenance Personnel',
-          unit_name: (data.units as any)?.name || 'Unknown Unit'
-        });
       }
+
+      // Prioritize session metadata over profile table data
+      const name = user.user_metadata?.name || data?.name || user.email?.split('@')[0] || 'User';
+      const designation = user.user_metadata?.designation || data?.designation || 'Maintenance Personnel';
+      const unitName = (data?.units as any)?.name || 'Unknown Unit';
+
+      setUserProfile({
+        name,
+        designation,
+        unit_name: unitName
+      });
     };
 
     fetchProfile();
@@ -141,7 +146,8 @@ const Dashboard = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/login');
+      // AuthContext will handle state clearing, we just redirect
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out. Please try again.');

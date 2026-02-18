@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -35,20 +35,7 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
   const [selectedStatus, setSelectedStatus] = useState<Status | "">("");
   const [remarks, setRemarks] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Map specific emails to names
-  const emailToNameMap: Record<string, string> = {
-    'wyd.eng@malabarmilma.coop': 'Sarath DE',
-    'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
-    'wyd.tsengg@gmail.com': 'Dineesh AE',
-    'wyd.eng.mrcmpu@gmail.com': 'Subin DE'
-  };
 
-  // Function to get name from email
-  const getNameFromEmail = (email: string): string => {
-    return emailToNameMap[email] || email.split('@')[0] || email;
-  };
-  
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
     if (!open) {
@@ -63,26 +50,26 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
       toast.error("Please select a different status");
       return;
     }
-    
+
     if (!remarks.trim()) {
       toast.error("Please provide remarks for the status change");
       return;
     }
-    
+
     if (!user) {
       toast.error("You must be logged in to update task status");
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       console.log(`Updating task ${taskId} status to ${selectedStatus}`);
-      await updateTask(taskId, { 
+      await updateTask(taskId, {
         status: selectedStatus,
         remarks: remarks
-      }, user.email || 'Unknown User');
-      
+      }, user.id); // Pass user ID
+
       console.log(`Task status updated to ${selectedStatus}`);
       toast.success(`Task status updated to ${selectedStatus}`);
       setOpen(false);
@@ -111,9 +98,9 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
 
   return (
     <>
-      <Button 
-        variant="outline" 
-        size="sm" 
+      <Button
+        variant="outline"
+        size="sm"
         onClick={() => setOpen(true)}
         className="w-full flex items-center justify-center gap-2"
       >
@@ -127,12 +114,12 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
             <DialogTitle>Update Task Status</DialogTitle>
             <DialogDescription>Change the status and provide remarks for the update</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="status">New Status</Label>
-              <Select 
-                value={selectedStatus} 
+              <Select
+                value={selectedStatus}
                 onValueChange={(value) => setSelectedStatus(value as Status)}
               >
                 <SelectTrigger>
@@ -160,11 +147,11 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="remarks">Remarks <span className="text-red-500">*</span></Label>
-              <Textarea 
-                id="remarks" 
+              <Textarea
+                id="remarks"
                 placeholder="Why are you changing the status?"
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
@@ -175,12 +162,12 @@ const StatusUpdateMenu = ({ taskId, currentStatus }: StatusUpdateMenuProps) => {
               </p>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleStatusChange}
               disabled={isSubmitting}
             >

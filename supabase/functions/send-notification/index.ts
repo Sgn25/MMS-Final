@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { serviceAccount } from "./service-account.ts"
 import { SignJWT, importPKCS8 } from "https://esm.sh/jose@4.14.4"
 
 const corsHeaders = {
@@ -9,12 +8,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Service Account details from environment variables
+const getServiceAccount = () => {
+  const projectId = Deno.env.get('FIREBASE_PROJECT_ID')
+  const clientEmail = Deno.env.get('FIREBASE_CLIENT_EMAIL')
+  const privateKey = Deno.env.get('FIREBASE_PRIVATE_KEY')
+
+  if (!projectId || !clientEmail || !privateKey) {
+    throw new Error('Missing Firebase credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)')
+  }
+
+  return {
+    project_id: projectId,
+    client_email: clientEmail,
+    private_key: privateKey.replace(/\\n/g, '\n'),
+  }
+}
+
 // Helper to get access token
 async function getAccessToken({ client_email, private_key }: { client_email: string, private_key: string }) {
   try {
     const alg = 'RS256'
-    const pkcs8 = private_key.replace(/\\n/g, '\n')
-    const privateKey = await importPKCS8(pkcs8, alg)
+    const privateKey = await importPKCS8(private_key, alg)
 
     const jwt = await new SignJWT({
       iss: client_email,
@@ -42,6 +57,9 @@ async function getAccessToken({ client_email, private_key }: { client_email: str
     })
 
     const data = await response.json()
+    if (!response.ok) {
+      throw new Error(`Auth failed: ${JSON.stringify(data)}`)
+    }
     return data.access_token
   } catch (err) {
     console.error("Error getting access token:", err)
@@ -56,8 +74,6 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with service role key to bypass RLS
-    // This allows automated notifications (from cron jobs) to access all device tokens
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -96,8 +112,10 @@ serve(async (req) => {
       })
     }
 
-    // Get Access Token
+    // Get Service Account and Access Token
+    const serviceAccount = getServiceAccount()
     const accessToken = await getAccessToken(serviceAccount)
+
     if (!accessToken) {
       throw new Error('Failed to generate access token')
     }
@@ -139,10 +157,8 @@ serve(async (req) => {
         if (!response.ok) {
           console.error(`Failed to send to ${token}:`, result)
 
-          // Check if the error is UNREGISTERED (invalid/expired token)
           if (result.error?.details?.some((d: any) => d.errorCode === 'UNREGISTERED')) {
             console.log(`Deleting unregistered token: ${token}`)
-            // Delete the invalid token from database
             const { error: deleteError } = await supabaseClient
               .from('device_tokens')
               .delete()
@@ -150,8 +166,6 @@ serve(async (req) => {
 
             if (deleteError) {
               console.error(`Failed to delete unregistered token:`, deleteError)
-            } else {
-              console.log(`Successfully deleted unregistered token`)
             }
           }
         }

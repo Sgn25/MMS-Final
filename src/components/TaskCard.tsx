@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -27,19 +27,6 @@ const TaskCard = ({ task }: TaskCardProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Map specific emails to names
-  const emailToNameMap: Record<string, string> = {
-    'wyd.eng@malabarmilma.coop': 'Sarath DE',
-    'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
-    'wyd.tsengg@gmail.com': 'Dineesh AE',
-    'wyd.eng.mrcmpu@gmail.com': 'Subin DE'
-  };
-
-  // Function to get name from email
-  const getNameFromEmail = (email: string): string => {
-    return emailToNameMap[email] || email.split('@')[0] || email;
-  };
-
   // Function to determine priority badge color
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -57,11 +44,13 @@ const TaskCard = ({ task }: TaskCardProps) => {
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
       month: 'short',
-      day: 'numeric',
+      year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: true
     }).format(date);
   };
 
@@ -79,34 +68,33 @@ const TaskCard = ({ task }: TaskCardProps) => {
     }
   };
 
-  // Get the creator email (first status history entry)
+  // Get the creator name (first status history entry)
   const getCreatedBy = () => {
     if (task.statusHistory && task.statusHistory.length > 0) {
       // Get the earliest entry
-      const sortedHistory = [...task.statusHistory].sort((a, b) => 
+      const sortedHistory = [...task.statusHistory].sort((a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
-      return getNameFromEmail(sortedHistory[0].changedBy);
+      return sortedHistory[0].changedBy;
     }
     return 'Unknown';
   };
 
-  // Get the last updater email (most recent status history entry that isn't the creation entry)
+  // Get the last updater name (most recent status history entry)
   const getLastUpdatedBy = () => {
-    if (task.statusHistory && task.statusHistory.length > 1) {
-      // Get the most recent entry that isn't the creation entry
-      const sortedHistory = [...task.statusHistory].sort((a, b) => 
+    if (task.statusHistory && task.statusHistory.length > 0) {
+      // Get the most recent entry
+      const sortedHistory = [...task.statusHistory].sort((a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
-      // First entry is the most recent update
-      return getNameFromEmail(sortedHistory[0].changedBy);
+      return sortedHistory[0].changedBy;
     }
     return 'Unknown';
   };
 
   // Get relative time for last update
   const getTimeAgo = () => {
-    return formatDistanceToNow(new Date(task.updatedAt), { addSuffix: true });
+    return `Updated ${formatDistanceToNow(new Date(task.updatedAt), { addSuffix: true })}`;
   };
 
   const handleDelete = async () => {
@@ -127,7 +115,7 @@ const TaskCard = ({ task }: TaskCardProps) => {
 
   return (
     <>
-      <Card 
+      <Card
         className={`
           border-l-4 ${getStatusColor(task.status)} 
           hover:shadow-md transition-all duration-200 
@@ -151,9 +139,9 @@ const TaskCard = ({ task }: TaskCardProps) => {
                 <h3 className="font-medium text-gray-900">{task.title}</h3>
               </Link>
             </div>
-            
+
             <p className="text-sm text-gray-500 line-clamp-2 mb-3">{task.description}</p>
-            
+
             <div className="text-xs text-gray-500 mb-1">
               <div className="flex items-center gap-1 mb-1">
                 <User className="h-3 w-3" />
@@ -172,12 +160,12 @@ const TaskCard = ({ task }: TaskCardProps) => {
                 <span>{getTimeAgo()}</span>
               </div>
             </div>
-            
+
             <div className="mt-2 pt-2 border-t flex gap-2">
               <StatusUpdateMenu taskId={task.id} currentStatus={task.status} />
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setIsDeleteDialogOpen(true)}
                 className="w-full flex items-center justify-center gap-2 text-red-500 hover:text-red-600 hover:bg-red-50"
               >
@@ -206,8 +194,8 @@ const TaskCard = ({ task }: TaskCardProps) => {
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
             >

@@ -8,12 +8,12 @@ interface TaskState {
   tasks: Task[];
   loading: boolean;
   error: string | null;
-  
+
   // Core state setters
   setTasks: (tasks: Task[]) => void;
   upsertTask: (task: Task) => void;
   removeTask: (taskId: string) => void;
-  
+
   // API actions
   fetchTasks: () => Promise<Task[]>;
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'statusHistory'>) => Promise<Task>;
@@ -33,11 +33,11 @@ const useTaskStore = create<TaskState>((set, get) => ({
     console.log(`Setting ${tasks.length} tasks in store`);
     set({ tasks });
   },
-  
+
   upsertTask: (newTask) => {
     const currentTasks = get().tasks;
     const taskIndex = currentTasks.findIndex(task => task.id === newTask.id);
-    
+
     if (taskIndex >= 0) {
       // Update existing task
       const updatedTasks = [...currentTasks];
@@ -48,7 +48,7 @@ const useTaskStore = create<TaskState>((set, get) => ({
       set({ tasks: [newTask, ...currentTasks] });
     }
   },
-  
+
   removeTask: (taskId) => {
     console.log(`Removing task ${taskId} from store`);
     const currentTasks = get().tasks;
@@ -77,7 +77,7 @@ const useTaskStore = create<TaskState>((set, get) => ({
       // Call the taskService to add the task and get the newly created task
       const newTask = await taskService.addTask(task);
       console.log('Task added successfully, adding to local state:', newTask);
-      
+
       // Update the local state immediately for better UX
       if (newTask) {
         const currentTasks = get().tasks;
@@ -85,7 +85,7 @@ const useTaskStore = create<TaskState>((set, get) => ({
       } else {
         set({ loading: false });
       }
-      
+
       return newTask;
     } catch (error: any) {
       console.error('Error in addTask:', error);
@@ -100,24 +100,25 @@ const useTaskStore = create<TaskState>((set, get) => ({
       console.log(`Updating task ${taskId} with data:`, updatedTask);
       await taskService.updateTask(taskId, updatedTask, userId);
       console.log('Task update request sent successfully');
-      
+
       // If this is a status update, update the local state immediately
       if (updatedTask.status) {
         const currentTasks = get().tasks;
         const taskIndex = currentTasks.findIndex(task => task.id === taskId);
-        
+
         if (taskIndex >= 0) {
           // Create a shallow copy of the task
           const updatedTaskCopy = {
             ...currentTasks[taskIndex],
             ...updatedTask,
+            createdAt: currentTasks[taskIndex].createdAt, // Explicitly preserve creation time
             updatedAt: new Date().toISOString()
           };
-          
+
           // Create a new tasks array with the updated task
           const updatedTasks = [...currentTasks];
           updatedTasks[taskIndex] = updatedTaskCopy;
-          
+
           // Update the store
           set({ tasks: updatedTasks, loading: false });
         } else {
@@ -139,7 +140,7 @@ const useTaskStore = create<TaskState>((set, get) => ({
       console.log(`Deleting task ${taskId}`);
       await taskService.deleteTask(taskId);
       console.log('Task deleted successfully');
-      
+
       // Update the local state immediately for better UX
       get().removeTask(taskId);
       set({ loading: false });
@@ -167,7 +168,7 @@ const useTaskStore = create<TaskState>((set, get) => ({
 // Set up realtime subscription when the store is initialized
 const initializeRealtimeSubscription = () => {
   console.log('Initializing realtime subscription in taskStore');
-  
+
   const updateStoreFromRealtime = (tasks: Task[]) => {
     console.log('Received realtime update, updating store with tasks:', tasks.length);
     useTaskStore.getState().setTasks(tasks);
@@ -183,13 +184,13 @@ const initializeRealtimeSubscription = () => {
 const initializeStore = async () => {
   try {
     console.log('Initializing task store');
-    
+
     // First load tasks
     await useTaskStore.getState().fetchTasks();
-    
+
     // Then set up realtime subscription
     initializeRealtimeSubscription();
-    
+
     console.log('Task store initialized successfully');
   } catch (error) {
     console.error('Failed to initialize store:', error);

@@ -29,30 +29,28 @@ BEGIN
   IF (TG_OP = 'INSERT') THEN
     notification_type := 'CREATE';
     task_title := 'New Task Created';
-    task_body := NEW.title || E'\nAssigned to: ' || assignee_name;
+    task_body := 'A new task (' || NEW.title || ') has been created by (' || assignee_name || ') at (' || to_char(NEW.created_at AT TIME ZONE 'Asia/Kolkata', 'HH:12:MI AM on DD-MM-YYYY') || ')';
     
     payload := jsonb_build_object(
       'type', notification_type,
       'taskId', NEW.id,
       'title', task_title,
       'body', task_body,
-      'unitId', NEW.unit_id,
-      'data', row_to_json(NEW)
+      'unitId', NEW.unit_id
     );
   ELSIF (TG_OP = 'UPDATE') THEN
     -- Only notify if status changed
     IF (OLD.status IS DISTINCT FROM NEW.status) THEN
       notification_type := 'UPDATE';
       task_title := 'Task Status Updated';
-      task_body := NEW.title || ' is now ' || NEW.status || E'\nAssigned to: ' || assignee_name;
+      task_body := 'Status of (' || NEW.title || ') has been changed from (' || OLD.status || ') to (' || NEW.status || ') by (' || assignee_name || ') at (' || to_char(NEW.updated_at AT TIME ZONE 'Asia/Kolkata', 'HH:12:MI AM on DD-MM-YYYY') || ')';
       
       payload := jsonb_build_object(
         'type', notification_type,
         'taskId', NEW.id,
         'title', task_title,
         'body', task_body,
-        'unitId', NEW.unit_id,
-        'data', row_to_json(NEW)
+        'unitId', NEW.unit_id
       );
     ELSE
       -- If status didn't change, DO NOT send notification
@@ -61,14 +59,13 @@ BEGIN
   ELSIF (TG_OP = 'DELETE') THEN
     notification_type := 'DELETE';
     task_title := 'Task Deleted';
-    task_body := OLD.title;
+    task_body := 'Task (' || OLD.title || ') has been deleted.';
     payload := jsonb_build_object(
       'type', notification_type,
       'taskId', OLD.id,
       'title', task_title,
       'body', task_body,
-      'unitId', OLD.unit_id,
-      'data', row_to_json(OLD)
+      'unitId', OLD.unit_id
     );
   END IF;
 

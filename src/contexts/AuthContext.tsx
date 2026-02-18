@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-        
+
         if (event === 'SIGNED_IN') {
           toast.success('Signed in successfully');
         } else if (event === 'SIGNED_OUT') {
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       });
-      
+
       if (error) throw error;
       toast.success("Signed up successfully! Please verify your email.");
     } catch (error: any) {
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password
       });
-      
+
       if (error) throw error;
     } catch (error: any) {
       toast.error(`Failed to sign in: ${error.message}`);
@@ -85,10 +85,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+
+      // Explicitly clear state in case the listener is slow
+      setUser(null);
+      setSession(null);
+      toast.success('Signed out successfully');
     } catch (error: any) {
+      console.error('Error in signOut:', error);
       toast.error(`Error signing out: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 

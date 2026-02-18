@@ -20,7 +20,7 @@ const TaskDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { getTaskById, updateTask, deleteTask } = useTaskStore();
-  
+
   const [task, setTask] = useState<Task | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -28,20 +28,7 @@ const TaskDetail = () => {
   const [priority, setPriority] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  
-  // Map specific emails to names
-  const emailToNameMap: Record<string, string> = {
-    'wyd.eng@malabarmilma.coop': 'Sarath DE',
-    'wyd.de.mrcmpu@gmail.com': 'Ameen DE',
-    'wyd.tsengg@gmail.com': 'Dineesh AE',
-    'wyd.eng.mrcmpu@gmail.com': 'Subin DE'
-  };
 
-  // Function to get name from email
-  const getNameFromEmail = (email: string): string => {
-    return emailToNameMap[email] || email.split('@')[0] || email;
-  };
-  
   useEffect(() => {
     const fetchTask = async () => {
       if (id) {
@@ -77,10 +64,10 @@ const TaskDetail = () => {
           },
           user.id
         );
-        
+
         toast.success('Task updated successfully');
         setIsEditing(false);
-        
+
         // Refresh task data
         const updatedTask = await getTaskById(id);
         if (updatedTask) {
@@ -137,12 +124,13 @@ const TaskDetail = () => {
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
       month: 'short',
-      day: 'numeric',
+      year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: true
     }).format(date);
   };
 
@@ -183,13 +171,13 @@ const TaskDetail = () => {
           <div className="flex items-center space-x-2">
             {isEditing ? (
               <>
-                <Button 
+                <Button
                   onClick={() => setIsEditing(false)}
                   variant="outline"
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleSave}
                   className="bg-milma-blue hover:bg-milma-blue/90 flex items-center gap-1"
                 >
@@ -199,14 +187,14 @@ const TaskDetail = () => {
               </>
             ) : (
               <>
-                <Button 
+                <Button
                   onClick={() => setIsEditing(true)}
                   variant="outline"
                 >
                   Edit Task
                 </Button>
-                <Button 
-                  onClick={handleDelete} 
+                <Button
+                  onClick={handleDelete}
                   variant="destructive"
                   className="flex items-center gap-1"
                 >
@@ -240,7 +228,7 @@ const TaskDetail = () => {
                         onChange={(e) => setTitle(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="description">Description</Label>
                       <Textarea
@@ -250,7 +238,7 @@ const TaskDetail = () => {
                         rows={4}
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="status">Status</Label>
@@ -265,7 +253,7 @@ const TaskDetail = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="priority">Priority</Label>
                         <Select value={priority} onValueChange={setPriority}>
@@ -280,7 +268,7 @@ const TaskDetail = () => {
                         </Select>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="assignedTo">Assigned To</Label>
                       <Input
@@ -304,12 +292,12 @@ const TaskDetail = () => {
                         </Badge>
                       </div>
                     </div>
-                    
+
                     <div className="pt-2">
                       <h3 className="text-sm font-medium text-gray-700 mb-1">Description</h3>
                       <p className="text-gray-600 whitespace-pre-line">{task.description}</p>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div>
                         <h3 className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
@@ -356,7 +344,7 @@ const TaskDetail = () => {
                             <div className="flex-1">
                               <div className="text-sm">
                                 {isInitialEntry(change, index) ? (
-                                  <span>Task created by <span className="font-medium">{getNameFromEmail(change.changedBy)}</span></span>
+                                  <span>Task created by <span className="font-medium">{change.changedBy}</span></span>
                                 ) : (
                                   <span>Status changed from <span className="font-medium">{change.previousStatus}</span> to <span className="font-medium">{change.newStatus}</span></span>
                                 )}
@@ -368,8 +356,8 @@ const TaskDetail = () => {
                                 <span>{formatDate(change.timestamp)}</span>
                                 {!isInitialEntry(change, index) && (
                                   <span className="flex items-center gap-1">
-                                    <Mail className="h-3 w-3" />
-                                    <span className="font-medium">{getNameFromEmail(change.changedBy)}</span>
+                                    <UserCircle className="h-3 w-3" />
+                                    <span className="font-medium">{change.changedBy}</span>
                                   </span>
                                 )}
                               </div>
@@ -382,7 +370,7 @@ const TaskDetail = () => {
                 )}
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Task Details</CardTitle>

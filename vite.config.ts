@@ -5,8 +5,13 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 8080,
+    host: "localhost",
+    port: 8081,
+    watch: {
+      usePolling: true,
+      interval: 1000,
+      ignored: ['**/milma-native/**', '**/android/**', '**/ios/**', '**/node_modules/**', '**/.git/**'],
+    },
   },
   plugins: [
     react()
