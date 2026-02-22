@@ -53,9 +53,14 @@ const Dashboard = () => {
         console.error('Error fetching profile:', profileError);
       }
 
-      // Prioritize session metadata over profile table data
-      const name = user.user_metadata?.name || data?.name || user.email?.split('@')[0] || 'User';
-      const designation = user.user_metadata?.designation || data?.designation || 'Maintenance Personnel';
+      // Prioritize profile table data over session metadata for accuracy
+      const name = (data?.name && data.name.trim() !== '')
+        ? data.name
+        : (user.user_metadata?.name && user.user_metadata.name.trim() !== '')
+          ? user.user_metadata.name
+          : user.email?.split('@')[0] || 'User';
+
+      const designation = data?.designation || (data as any)?.subname || user.user_metadata?.designation || 'Maintenance Personnel';
       const unitName = (data?.units as any)?.name || 'Unknown Unit';
 
       setUserProfile({

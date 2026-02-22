@@ -25,6 +25,15 @@ const ProfilePage = () => {
 
     useEffect(() => {
         const fetchData = async () => {
+            // Priority 0: Immediate fallback to metadata for seamless UX
+            if (user) {
+                setProfile({
+                    name: user.user_metadata?.name || '',
+                    designation: user.user_metadata?.designation || '',
+                    unitId: user.user_metadata?.unit_id || ''
+                });
+            }
+
             try {
                 // Fetch units
                 const { data: unitsData, error: unitsError } = await supabase.from('units').select('id, name');
@@ -35,23 +44,26 @@ const ProfilePage = () => {
                 if (user) {
                     const { data: profileData, error: profileError } = await supabase
                         .from('profiles')
-                        .select('name, designation, unit_id')
+                        .select('name, designation, subname, unit_id')
                         .eq('id', user.id)
                         .maybeSingle();
 
-                    if (profileError) throw profileError;
+                    if (profileError) {
+                        console.warn('Profile fetch error (possibly RLS), using metadata fallback:', profileError);
+                        return;
+                    }
 
                     if (profileData) {
                         setProfile({
-                            name: profileData.name || '',
-                            designation: profileData.designation || '',
-                            unitId: profileData.unit_id || ''
+                            name: profileData.name || user.user_metadata?.name || '',
+                            designation: profileData.designation || profileData.subname || user.user_metadata?.designation || '',
+                            unitId: profileData.unit_id || user.user_metadata?.unit_id || ''
                         });
                     }
                 }
             } catch (error: any) {
                 console.error('Error fetching profile data:', error);
-                toast.error('Failed to load profile');
+                toast.error('Failed to load profile details from server');
             } finally {
                 setLoading(false);
             }
@@ -71,15 +83,25 @@ const ProfilePage = () => {
         try {
             const { error } = await supabase
                 .from('profiles')
-                .update({
+                .upsert({
+                    id: user.id,
                     name: profile.name,
                     designation: profile.designation,
+                    subname: profile.designation,
                     unit_id: profile.unitId,
                     updated_at: new Date().toISOString()
-                })
-                .eq('id', user.id);
+                });
 
             if (error) throw error;
+
+            // Also update the auth metadata so it stays in sync
+            await supabase.auth.updateUser({
+                data: {
+                    name: profile.name,
+                    designation: profile.designation,
+                    unit_id: profile.unitId
+                }
+            });
 
             toast.success('Profile updated! Signing out to apply changes...');
 

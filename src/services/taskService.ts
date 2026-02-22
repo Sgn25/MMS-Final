@@ -121,8 +121,9 @@ export const taskService = {
         .eq('id', session.user.id)
         .maybeSingle();
 
-      const userName = session.user.user_metadata?.name || userData?.name || session.user.email || 'Unknown User';
-      const userDesignation = session.user.user_metadata?.designation || userData?.designation || '';
+      const userName = userData?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown User';
+      const userDesignation = userData?.designation || userData?.subname || session.user.user_metadata?.designation || '';
+
       const fullDisplayName = userDesignation ? `${userName} (${userDesignation})` : userName;
 
       const { data, error } = await supabase
@@ -241,8 +242,9 @@ export const taskService = {
           .eq('id', session.user.id)
           .maybeSingle();
 
-        const userName = session.user.user_metadata?.name || userData?.name || session.user.email || 'Unknown User';
-        const userDesignation = session.user.user_metadata?.designation || userData?.designation || '';
+        const userName = userData?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown User';
+        const userDesignation = userData?.designation || userData?.subname || session.user.user_metadata?.designation || '';
+
         const fullDisplayName = userDesignation ? `${userName} (${userDesignation})` : userName;
 
         const { error: historyError } = await supabase
